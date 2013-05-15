@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
@@ -14,6 +15,7 @@ import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import javax.xml.bind.JAXB;
 import javax.xml.bind.JAXBContext;
 
@@ -46,7 +48,7 @@ public class MatchHandler {
  public	 MatchHandler(){
 	 s=Server.getServer();
  }
-  @POST
+  @PUT
   @Path("/join")
 
   @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
@@ -57,7 +59,24 @@ public class MatchHandler {
 	  Player player=JAXB.unmarshal(new StringReader(formParams.get("player").get(0)), Player.class);
 	  int ID= Integer.parseInt(formParams.get("match").get(0));
 	  Match m=s.joinMatch(player, ID);
+	  if(m==null){
+		 return Response.status(Status.GONE).build();
+	  }
+	  
 	  return Response.ok(m).build();
+  }
+  @POST
+  @Path("/removeplayer")
+
+  @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response removePlayer(MultivaluedMap<String, String> formParams) throws JSONException {
+	 
+	  Player player=JAXB.unmarshal(new StringReader(formParams.get("player").get(0)), Player.class);
+	  int ID= Integer.parseInt(formParams.get("match").get(0));
+	  s.removePlayer(ID, player);
+	  return Response.ok().build();
   }
 
   @POST
@@ -68,7 +87,7 @@ public class MatchHandler {
   @Produces(MediaType.APPLICATION_JSON)
   public Response createMatch(MultivaluedMap<String, String> formParams) throws JSONException {
 	  
-	  
+	  System.out.println(formParams.values().size());
 	  Player starter=JAXB.unmarshal(new StringReader(formParams.get("player").get(0)), Player.class);
 	  Match m=s.createMatch(formParams.get("name").get(0),starter);
 	  return Response.ok(m).build();

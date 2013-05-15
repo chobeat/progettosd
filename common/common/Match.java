@@ -1,5 +1,6 @@
 package common;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -7,7 +8,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class Match {
-	public List<Player> playerList;
+	public HashMap<Integer,Player> playerList;
 	public String name;
 	public Player winner;
 	public boolean live = false;
@@ -21,47 +22,29 @@ public class Match {
 		ID = iD;
 	}
 
-	public int pIDCount = 0;
-
 	public Match() {
 
-		playerList = new LinkedList<Player>();
+		playerList = new HashMap<Integer,Player>();
 	}
 
-	public int nextID() {
-		return ++pIDCount;
-	}
 
 	public void addPlayer(Player p) {
-		if (!playerList.contains(p))
-			playerList.add(p);
+	
+		
+		playerList.put(p.getPort(), p);
+		
+		
 
 	}
 
-	public synchronized void removePlayer(Player p) {
+	public synchronized void removePlayer(int port) {
 
-		playerList.remove(p);
-
-		if (playerList.size() == 1) {
-			declareVictory(playerList.get(0));
-			return;
-		}
-
-		if (playerList.size() < 1)
-			abortMatch();
+		playerList.remove(port);
+	
 
 	}
-
-	public void abortMatch() {
-		live = false;
-	}
-
-	public void startMatch() {
-		live = true;
-
-	}
-
-	public void declareVictory(Player p) {
+	public void declareVictory(int id) {
+		Player p=playerList.get(id);
 		winner = p;
 		live = false;
 
@@ -70,7 +53,7 @@ public class Match {
 	@Override
 	public String toString() {
 		String res = "Match: " + this.name + "\nPartecipanti:";
-		for (Player p : this.playerList) {
+		for (Player p : this.playerList.values()) {
 			res = res + "\n" + p;
 
 		}

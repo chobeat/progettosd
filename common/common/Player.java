@@ -13,15 +13,6 @@ public class Player {
   private String name;
   private String addr;
   private int port;
-  private int id;
-  
-public int getId() {
-	return id;
-}
-
-public void setId(int id) {
-	this.id = id;
-}
 
 public Player(){
 };  
@@ -54,7 +45,7 @@ public void setPort(int port) {
 
 @Override 
 public String toString(){
-	return "Player-"+this.id+" "+this.name+" - "+this.addr+":"+this.port;
+	return "Player-"+this.name+" - "+this.addr+":"+this.port;
 	
 }
 

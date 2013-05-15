@@ -54,26 +54,37 @@ public class Server {
 	public synchronized Match createMatch(String name, Player starter) {
 		Match m = new Match();
 		m.name = name;
-		starter.setId(m.nextID());
 		m.addPlayer(starter);
-		m.startMatch();
+		
 		m.setID( getNextMatchID());
 		matchList.put(m.getID(), m);
 		return m;
 
 	}
+	
+	public void removePlayer(int matchID,Player p){
+		Match m=matchList.get(matchID);
+		System.out.println("Porta"+p.getPort());
+		System.out.println(m);
+		
+		m.removePlayer(p.getPort());
+		
+	}
 
 	public Match joinMatch(Player p,int id){
+		try{
 		Match m=matchList.get(id);
-		p.setId(m.nextID());
+
 		m.addPlayer(p);
-		System.out.println(m);
 		return m;
+		} catch(RuntimeException e){
+			return null;
+		}
 	}
 	
 	public Player createPlayer(String name, String addr, int port) {
 		Player p = new Player(name, addr, port);
-		p.setId(-1);
+		
 		playerList.add(p);
 		return p;
 	}

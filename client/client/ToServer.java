@@ -13,8 +13,10 @@ import javax.xml.bind.JAXB;
 import javax.xml.bind.JAXBContext;
 
 import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.GenericType;
 import com.sun.jersey.api.client.WebResource;
+import com.sun.jersey.api.client.ClientResponse.Status;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 import com.sun.jersey.api.representation.Form;
@@ -23,21 +25,31 @@ import common.Player;
 
 public class ToServer {
 
-	ClientConfig config = new DefaultClientConfig();
-	Client client = Client.create(config);
-	Match[] lastMatch;
-	Player me;
-
+	ClientConfig config;
+	Client client;
+	Match[] matchCache;
+	Main main;
+	public ToServer(Main main){
+		
+		System.out.println("aaa");
+		config = new DefaultClientConfig();
+		System.out.println("aaa");
+		client=Client.create(config);
+		System.out.println("aaa");
+		this.main=main;
+	}
+	
+	
 	public Match joinMatch(int number) throws JAXBException{
 		
-		Match match=lastMatch[number-1];
+		Match match=matchCache[number-1];
 		
 		
 		final JAXBContext contextP = JAXBContext.newInstance(Player.class);
 		final Marshaller marshallerP = contextP.createMarshaller();
 	       final StringWriter stringWriterP = new StringWriter();
 	       
-		marshallerP.marshal(me, stringWriterP); 
+		marshallerP.marshal(main.me, stringWriterP); 
      
 		WebResource service = client.resource(getBaseURI());
 		Form params = new Form();
@@ -46,26 +58,53 @@ public class ToServer {
 		params.add("player", stringWriterP.toString());
 		
 		
-		common.Match m = (common.Match) service.path("match")
+		ClientResponse response= service.path("match")
 				.path("join")
 				.type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
 				.accept(MediaType.APPLICATION_JSON)
-				.post(common.Match.class, params);
+				.put(ClientResponse.class, params);
 		
-		return m;
+		if(response.getStatus()==410){
+			throw new IndexOutOfBoundsException();
+		}
+		System.out.println(response.toString());
+		return response.getEntity(Match.class);
 		
 	}
+	
+	public boolean quit() throws JAXBException{
+		final JAXBContext context = JAXBContext.newInstance(Player.class);
+		final Marshaller marshaller = context.createMarshaller();
+		final StringWriter stringWriter = new StringWriter();
+		   
+		
+		WebResource service = client.resource(getBaseURI());
+		Form params = new Form();
+		params.add("match", main.activeMatch.getID());
+		marshaller.marshal(main.me, stringWriter);
+		params.add("player", stringWriter.toString());
+		try{service.path("match")
+				.path("removeplayer")
+				.type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
+				.accept(MediaType.APPLICATION_JSON)
+				.post(common.Match.class, params);
+		}
+		catch(Exception e){return false;}
+		return true;
+		
+	}
+	
 	public Match createMatch(String name) throws JAXBException {
 		final JAXBContext context = JAXBContext.newInstance(Player.class);
 		final Marshaller marshaller = context.createMarshaller();
-		 
+		
         // Create a stringWriter to hold the XML
         final StringWriter stringWriter = new StringWriter();
  
 		WebResource service = client.resource(getBaseURI());
 		Form params = new Form();
 		params.add("name", name);
-		marshaller.marshal(me, stringWriter);
+		marshaller.marshal(main.me, stringWriter);
 		params.add("player", stringWriter.toString());
 		common.Match m = (common.Match) service.path("match")
 				.path("create")
@@ -89,7 +128,7 @@ public class ToServer {
 				.type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
 				.accept(MediaType.APPLICATION_JSON)
 				.post(common.Player.class, params);
-		me = p;
+		main.me = p;
 		return p;
 	}
 
@@ -99,8 +138,11 @@ public class ToServer {
 				.accept(MediaType.APPLICATION_XML).get(Match[].class);
 		if (l.length == 0)
 			throw new EmptyMatchListException();
-		String res = "";
-		lastMatch = l;
+		String res = "";{
+			System.out.println("Sono morto");
+			
+		}
+		matchCache = l;
 		int counter = 0;
 		for (Match m : l) {
 			res = res + ++counter + "- " + m.name + "\n";
