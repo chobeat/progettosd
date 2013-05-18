@@ -1,6 +1,8 @@
 package client;
 
 import common.*;
+import communication.TokenMessage;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,7 +13,7 @@ import javax.xml.bind.JAXBException;
 
 import com.sun.corba.se.impl.transport.ListenerThreadImpl;
 
-import distributed.ListenThread;
+import distributed.ListenDispatcher;
 import distributed.PeerManager;
 
 import test.customTest;
@@ -19,7 +21,7 @@ import test.customTest;
 public class Main {
 	ToServer server;
 	BufferedReader in;
-	Player me;
+	public Player me;
 	Match activeMatch;
 	PeerManager peerManager;
 	/**
@@ -28,7 +30,7 @@ public class Main {
 	public static void main(String[] args) throws Exception {
 		// TODO Auto-generated method stub
 		// new customTest(generateRandomPlayer()+"1\ntestquit\n").start();
-		 runParallelTest();
+		runParallelTest();
 		//runPlain();
 	}
 
@@ -50,7 +52,7 @@ public class Main {
 		String name = in.readLine();
 		System.out.println("Quale porta vuoi usare?");
 		int port = Integer.parseInt(in.readLine());
-		System.out.println(server.createPlayer(name, port));
+		me=server.createPlayer(name, port);
 		// Match selection
 		activeMatch = this.matchSelection();
 
@@ -123,22 +125,32 @@ public class Main {
 
 	public void playMatch() throws IOException, JAXBException,
 			ActiveMatchNotPresent {
+		System.out.println("Inizio partita");
+		System.out.println(activeMatch);
 		peerManager=new PeerManager(this,me, activeMatch.playerList);
 		
 		if (activeMatch == null) {
 			throw new ActiveMatchNotPresent();
 		}
-		
-		ListenThread lt=new ListenThread(peerManager);
-		String selection;
+			String selection;
 		while (true) {
 
 			selection = in.readLine();
 
 			switch (selection) {
 			case ("1"): {
+				System.out.println("A chi vuoi mandare?");
+				int porta=Integer.parseInt(in.readLine());
+				System.out.println("Mando a "+porta);
+				peerManager.send(new TokenMessage(), porta);
 			}
 			case ("2"): {
+			while(true){try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}}
 			}
 			case ("3"): {
 			}
@@ -150,8 +162,7 @@ public class Main {
 				System.exit(0);
 			}
 			default: {
-				System.out.println("comando non valido");
-				System.exit(0);
+				
 			}
 			}
 
@@ -164,17 +175,17 @@ public class Main {
 
 	}
 
-	static int port = 10000;
+	static int port = 13333;
 
 	public static void runParallelTest() throws InterruptedException {
 
 		Thread first = new customTest(generateRandomPlayer()
-				+ "0\n partita\ntestquit");
+				+ "0\n partita\n2");
 		first.start();
-		first.join();
+		first.join(2000);
 
 		String clients[] = { // generateRandomPlayer()+"1\n\",
-		generateRandomPlayer() + "1\ntestquit",
+		generateRandomPlayer() + "1\n1\n13334",
 		// generateRandomPlayer()+"1\ntestquit",
 
 		};

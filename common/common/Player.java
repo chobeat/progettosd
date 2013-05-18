@@ -3,11 +3,15 @@ package common;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
+import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
+
+import com.sun.xml.internal.txw2.annotation.XmlElement;
 
 import m.Server;
 
-
+@XmlAccessorType
+@XmlElement
 @XmlRootElement
 public class Player {
   private String name;

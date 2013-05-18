@@ -8,7 +8,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class Match {
-	public HashMap<Integer,Player> playerList;
+	public List<Player> playerList;
 	public String name;
 	public Player winner;
 	public boolean live = false;
@@ -26,22 +26,28 @@ public class Match {
 
 	public Match() {
 
-		playerList = new HashMap<Integer,Player>();
+		playerList = new LinkedList<Player>();
 	}
 
 
 	public void addPlayer(Player p) {
 	
 		
-		playerList.put(p.getPort(), p);
+		playerList.add(p);
 		
 		
 
 	}
 
-	public synchronized void removePlayer(int port) {
-
-		playerList.remove(port);
+	public synchronized void removePlayer(Player p) {
+		
+		for(Player i:playerList){
+		
+			if(i.getPort()==p.getPort()){
+				playerList.remove(i);
+			}
+			
+		}
 	
 
 	}
@@ -60,7 +66,7 @@ public class Match {
 	@Override
 	public String toString() {
 		String res = "Match numero "+id+": " + this.name + "\nPartecipanti:";
-		for (Player p : this.playerList.values()) {
+		for (Player p : this.playerList) {
 			res = res + "\n" + p;
 
 		}

@@ -3,6 +3,7 @@ package client;
 import java.io.StringWriter;
 import java.net.URI;
 import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.ws.rs.core.MediaType;
@@ -54,14 +55,15 @@ public class ToServer {
 				.accept(MediaType.APPLICATION_JSON)
 				.put(ClientResponse.class, params);
 		
-		
+
+		System.out.println(response);
 		if(response.getStatus()==410){
 			matchCache[localID-1]=null;
 		
 			throw new IndexOutOfBoundsException();
 		}
-
-		return response.getEntity(Match.class);
+		Match m=response.getEntity(Match.class);
+		return m;
 		
 	}
 	
@@ -80,9 +82,12 @@ public class ToServer {
 				.path("removeplayer")
 				.type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
 				.accept(MediaType.APPLICATION_JSON)
-				.delete(common.Match.class, params);
+				.post(params);
+		//Uso post invece di delete per incompatibilità dell'implementazione di HttpURLConnection
 		}
-		catch(Exception e){return false;}
+		catch(Exception e){
+			e.printStackTrace();
+			return false;}
 		return true;
 		
 	}
@@ -116,13 +121,12 @@ public class ToServer {
 		params.add("name", name);
 		marshaller.marshal(main.me, stringWriter);
 		params.add("player", stringWriter.toString());
-		common.Match m = (common.Match) service.path("match")
+		ClientResponse cr = service.path("match")
 				.path("create")
 				.type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
 				.accept(MediaType.APPLICATION_JSON)
-				.post(common.Match.class, params);
-
-		return m;
+				.post(ClientResponse.class, params);
+		return cr.getEntity(Match.class);
 
 	}
 
@@ -138,7 +142,7 @@ public class ToServer {
 				.type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
 				.accept(MediaType.APPLICATION_JSON)
 				.post(common.Player.class, params);
-		main.me = p;
+
 		return p;
 	}
 

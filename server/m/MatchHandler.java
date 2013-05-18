@@ -46,7 +46,22 @@ public class MatchHandler {
 	  
 	  return Response.ok(m).build();
   }
-  @DELETE
+
+  @GET
+  @Path("/view/{id}")
+
+  
+  @Produces(MediaType.TEXT_HTML)
+  public Response view(@PathParam(value = "id") int id) throws JSONException {
+	    
+	  Match arr[]=s.getMatchArray();
+	  return Response.ok(arr[id].toString()).build();
+  }
+  
+  
+
+	//Uso post invece di delete per incompatibilità dell'implementazione di HttpURLConnection
+  @POST
   @Path("/removeplayer")
 
   @Consumes(MediaType.APPLICATION_FORM_URLENCODED)

@@ -61,7 +61,7 @@ public class Server {
 	
 	public Match removePlayer(int matchID,Player p){
 		Match m=this.getMatchByID(matchID);
-		m.removePlayer(p.getPort());
+		m.removePlayer(p);
 		return m;
 	}
 

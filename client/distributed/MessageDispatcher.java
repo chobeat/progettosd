@@ -11,6 +11,7 @@ public class MessageDispatcher {
 	public BlockingQueue<Message> queue;
 	private static MessageDispatcher singleton;
 	private MessageDispatcher(int tNum) {
+		System.out.println("Creo Message Dispatcher");
 		queue= new LinkedBlockingQueue<Message>();
 		for (int i = 0; i < tNum; i++) {
 			new MessageHandlerThread(queue).start();

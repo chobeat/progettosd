@@ -25,7 +25,7 @@ import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 
 import distributed.CustomMarshaller;
-import distributed.ListenThread;
+import distributed.ListenDispatcher;
 import distributed.MessageDispatcher;
 import distributed.MessageHandlerThread;
 import distributed.PeerManager;
@@ -101,12 +101,7 @@ public class ToyClient {
 		plist.add(p1);
 		plist.add(p2);
 		plist.add(p3);
-		ListenThread lt=new ListenThread(new PeerManager(p1, plist), new ServerSocket(p1.getPort()));
-		
-		for(Player p:plist){
 			
-		}
-		
 		CustomMarshaller cm=new CustomMarshaller();
 		TokenMessage m=new TokenMessage();
 		

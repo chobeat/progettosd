@@ -1,36 +1,35 @@
 package distributed;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.net.ServerSocket;
-
+import java.io.InputStreamReader;
+import java.net.Socket;
 
 public class ListenThread extends Thread {
 
-	
-	ServerSocket socket;
-	PeerManager manager;
-	public ListenThread(PeerManager p){
-		try {
-			socket=new ServerSocket(p.me.getPort());
-			socket.accept();
-			
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		manager=p;
+	Socket socket;
+	BufferedReader inFromClient;
+	public ListenThread(Socket s) throws IOException{
+		System.out.println("Sono dispatchato");
+		socket=s;
+		inFromClient=new BufferedReader(new
+				InputStreamReader(socket.getInputStream()));
+		
 	}
 	@Override
-	public void run(){
+	public void run() {
 		
 		while(true){
 			try {
-				
+				System.out.println("Ricevo: "+inFromClient.readLine());
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+					
 		}
 		
 	}
+
+	
 }
