@@ -2,21 +2,14 @@ package client;
 
 import java.io.StringWriter;
 import java.net.URI;
-import java.util.LinkedList;
-
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
-import javax.xml.bind.JAXB;
-import javax.xml.bind.JAXBContext;
-
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.GenericType;
 import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.ClientResponse.Status;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 import com.sun.jersey.api.representation.Form;
@@ -31,18 +24,15 @@ public class ToServer {
 	Main main;
 	public ToServer(Main main){
 		
-		System.out.println("aaa");
 		config = new DefaultClientConfig();
-		System.out.println("aaa");
 		client=Client.create(config);
-		System.out.println("aaa");
 		this.main=main;
 	}
 	
 	
-	public Match joinMatch(int number) throws JAXBException{
+	public Match joinMatch(int localID) throws JAXBException{
 		
-		Match match=matchCache[number-1];
+		Match match=matchCache[localID-1];
 		
 		
 		final JAXBContext contextP = JAXBContext.newInstance(Player.class);
@@ -53,7 +43,7 @@ public class ToServer {
      
 		WebResource service = client.resource(getBaseURI());
 		Form params = new Form();
-		params.add("match", match.getID());
+		params.add("match", match.getId());
 		
 		params.add("player", stringWriterP.toString());
 		
@@ -64,10 +54,13 @@ public class ToServer {
 				.accept(MediaType.APPLICATION_JSON)
 				.put(ClientResponse.class, params);
 		
+		
 		if(response.getStatus()==410){
+			matchCache[localID-1]=null;
+		
 			throw new IndexOutOfBoundsException();
 		}
-		System.out.println(response.toString());
+
 		return response.getEntity(Match.class);
 		
 	}
@@ -80,19 +73,36 @@ public class ToServer {
 		
 		WebResource service = client.resource(getBaseURI());
 		Form params = new Form();
-		params.add("match", main.activeMatch.getID());
+		params.add("match", main.activeMatch.getId());
 		marshaller.marshal(main.me, stringWriter);
 		params.add("player", stringWriter.toString());
 		try{service.path("match")
 				.path("removeplayer")
 				.type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
 				.accept(MediaType.APPLICATION_JSON)
-				.post(common.Match.class, params);
+				.delete(common.Match.class, params);
 		}
 		catch(Exception e){return false;}
 		return true;
 		
 	}
+
+	public boolean endMatch() throws JAXBException{
+			   
+		
+		WebResource service = client.resource(getBaseURI());
+		
+		try{service.path("match")
+				.path("removematch")
+				.type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
+				.accept(MediaType.APPLICATION_JSON)
+				.delete(Match.class,main.activeMatch.getId());
+		}
+		catch(Exception e){return false;}
+		return true;
+		
+	}
+	
 	
 	public Match createMatch(String name) throws JAXBException {
 		final JAXBContext context = JAXBContext.newInstance(Player.class);
@@ -138,10 +148,7 @@ public class ToServer {
 				.accept(MediaType.APPLICATION_XML).get(Match[].class);
 		if (l.length == 0)
 			throw new EmptyMatchListException();
-		String res = "";{
-			System.out.println("Sono morto");
-			
-		}
+		String res = "";
 		matchCache = l;
 		int counter = 0;
 		for (Match m : l) {

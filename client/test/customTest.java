@@ -23,8 +23,6 @@ public class customTest extends Thread {
 			m1.runClient();
 			System.out.println("out");
 		} catch (Exception e) {
-			System.out.println("excpt");
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 
 		}

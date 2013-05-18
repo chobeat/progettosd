@@ -1,51 +1,48 @@
 package client;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.StringReader;
-import java.io.StringWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.URI;
+import java.util.LinkedList;
+
 import common.*;
-import communication.DeathMessage;
+import communication.Message;
 import communication.TokenMessage;
 
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.DocumentBuilder;
+import javax.ws.rs.core.UriBuilder;
+import javax.xml.bind.JAXBException;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
-import org.w3c.dom.Node;
-import org.w3c.dom.Element;
+import org.w3c.dom.DOMException;
 import org.xml.sax.SAXException;
 
-import java.io.File;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.UriBuilder;
-import javax.xml.bind.JAXB;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.parsers.*;
-import com.sun.corba.se.impl.protocol.giopmsgheaders.Message;
 import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
-import com.sun.jersey.api.representation.Form;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
+
+import distributed.CustomMarshaller;
+import distributed.ListenThread;
+import distributed.MessageDispatcher;
+import distributed.MessageHandlerThread;
+import distributed.PeerManager;
 
 public class ToyClient {
 
 	/**
 	 * @param args
 	 * @throws ClassNotFoundException 
+	 * @throws IOException 
+	 * @throws JAXBException 
+	 * @throws SAXException 
+	 * @throws ParserConfigurationException 
+	 * @throws DOMException 
+	 * @throws InterruptedException 
 	 */
-	public static void main(String[] args) throws ClassNotFoundException {
+	public static void main(String[] args) throws ClassNotFoundException, IOException, JAXBException, DOMException, ParserConfigurationException, SAXException, InterruptedException {
 		// TODO Auto-generated method stub
 
 		ClientConfig config = new DefaultClientConfig();
@@ -59,7 +56,7 @@ public class ToyClient {
 	    params.add("port", 5555);
 		common.Player p=(common.Player)service.path("match").path("createplayer").type(MediaType.APPLICATION_FORM_URLENCODED_TYPE).accept(MediaType.APPLICATION_JSON).post(common.Player.class,params);
 		System.out.println(p.getName());
-*/
+
 		TokenMessage m=new TokenMessage();
 		JAXBContext context;
 		try {
@@ -86,6 +83,42 @@ public class ToyClient {
 			e.printStackTrace();
 		}
 		
+		*/
+		
+		Player p3=new Player();
+		p3.setAddr("localhost");
+		p3.setPort(9855);
+		
+		Player p1=new Player();
+		p1.setAddr("localhost");
+		p1.setPort(9856);
+		
+		Player p2=new Player();
+		p2.setAddr("localhost");
+		p2.setPort(9857);
+		
+		LinkedList<Player> plist=new LinkedList<Player>();
+		plist.add(p1);
+		plist.add(p2);
+		plist.add(p3);
+		ListenThread lt=new ListenThread(new PeerManager(p1, plist), new ServerSocket(p1.getPort()));
+		
+		for(Player p:plist){
+			
+		}
+		
+		CustomMarshaller cm=new CustomMarshaller();
+		TokenMessage m=new TokenMessage();
+		
+		MessageDispatcher mh=MessageDispatcher.getMessageDispatcher();
+		mh.enqueue(m);
+		mh.enqueue(m);
+		mh.enqueue(m);
+		mh.enqueue(m);
+		Thread.sleep(2500);
+		mh.enqueue(m);
+		mh.enqueue(m);
+		mh.enqueue(m);
 		
 	}
 

@@ -2,13 +2,10 @@ package m;
 
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
-
 import common.Match;
 import common.Player;
 
 public class Server {
-
 	public static Server s;
 	private int currID = 0;
 	private HashMap<Integer, Match> matchList;
@@ -56,19 +53,16 @@ public class Server {
 		m.name = name;
 		m.addPlayer(starter);
 		
-		m.setID( getNextMatchID());
-		matchList.put(m.getID(), m);
+		m.setId( getNextMatchID());
+		matchList.put(m.getId(), m);
 		return m;
 
 	}
 	
-	public void removePlayer(int matchID,Player p){
-		Match m=matchList.get(matchID);
-		System.out.println("Porta"+p.getPort());
-		System.out.println(m);
-		
+	public Match removePlayer(int matchID,Player p){
+		Match m=this.getMatchByID(matchID);
 		m.removePlayer(p.getPort());
-		
+		return m;
 	}
 
 	public Match joinMatch(Player p,int id){
@@ -80,6 +74,17 @@ public class Server {
 		} catch(RuntimeException e){
 			return null;
 		}
+	}
+	
+	public Match getMatchByID(int ID){
+		return matchList.get(ID);
+		
+	}
+	
+	public boolean endMatch(int ID){
+		getMatchByID(ID).end();
+		return matchList.remove(ID)==null;
+		
 	}
 	
 	public Player createPlayer(String name, String addr, int port) {

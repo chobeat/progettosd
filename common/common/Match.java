@@ -12,15 +12,17 @@ public class Match {
 	public String name;
 	public Player winner;
 	public boolean live = false;
-	private int ID;
+	private int id;
 
-	public int getID() {
-		return ID;
+	public int getId() {
+		return id;
 	}
 
-	public void setID(int iD) {
-		ID = iD;
+
+	public void setId(int id) {
+		this.id = id;
 	}
+
 
 	public Match() {
 
@@ -48,11 +50,16 @@ public class Match {
 		winner = p;
 		live = false;
 
+
 	}
 
+	public void end(){
+		System.out.println("Match "+id +"terminato");
+		
+	}
 	@Override
 	public String toString() {
-		String res = "Match: " + this.name + "\nPartecipanti:";
+		String res = "Match numero "+id+": " + this.name + "\nPartecipanti:";
 		for (Player p : this.playerList.values()) {
 			res = res + "\n" + p;
 
