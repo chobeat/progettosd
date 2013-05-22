@@ -9,9 +9,8 @@ public class ListenDispatcher extends Thread {
 
 	
 	ServerSocket socket;
-	PeerManager manager;
+	PeerManager pm;
 	public ListenDispatcher(PeerManager p){
-		System.out.println("Creo Listen dispatcher");
 		try {
 			socket=new ServerSocket(p.main.me.getPort());
 			
@@ -19,7 +18,7 @@ public class ListenDispatcher extends Thread {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		manager=p;
+		pm=p;
 	}
 	@Override
 	public void run(){
@@ -27,7 +26,7 @@ public class ListenDispatcher extends Thread {
 		while(true){
 			try {
 				s=socket.accept();
-			   new ListenThread(s).start();
+			   new ListenThread(s,pm).start();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

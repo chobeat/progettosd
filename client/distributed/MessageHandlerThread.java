@@ -1,6 +1,7 @@
 package distributed;
 
 import java.io.BufferedWriter;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.Queue;
@@ -8,26 +9,29 @@ import java.util.concurrent.BlockingQueue;
 
 import javax.xml.bind.JAXBException;
 
+import communication.Envelope;
 import communication.Message;
 
 
 public class MessageHandlerThread extends Thread {
 
-	BlockingQueue<Message> queue;
-	public MessageHandlerThread(BlockingQueue<Message> queue){
+	BlockingQueue<Envelope> queue;
+	public MessageHandlerThread(BlockingQueue<Envelope> queue){
 		this.queue=queue;
 	}
 	
 	@Override
 	public void run(){
 		Message m;
-		BufferedWriter writer;
+		DataOutputStream writer;
 		while(true){
 				
 				try {
-					m=queue.take();
-					writer=m.getDestination();
-					writer.write(CustomMarshaller.getCustomMarshaller().marshal(m));
+					Envelope e=queue.take();
+					m=e.getMessage();
+					writer =e.getDestination();
+System.out.println("Sono " +Thread.currentThread().getId()+ " e invio");
+					writer.writeBytes(CustomMarshaller.getCustomMarshaller().marshal(m)+"\n");
 					
 				} catch (InterruptedException | IOException | JAXBException e) {
 					// TODO Auto-generated catch block

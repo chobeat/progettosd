@@ -1,33 +1,27 @@
 package distributed;
 
+import java.io.DataOutputStream;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import communication.Envelope;
 import communication.Message;
 
 public class MessageDispatcher {
-	public static int HandlingThreadNumber=2;
-	public BlockingQueue<Message> queue;
-	private static MessageDispatcher singleton;
-	private MessageDispatcher(int tNum) {
-		System.out.println("Creo Message Dispatcher");
-		queue= new LinkedBlockingQueue<Message>();
+	public BlockingQueue<Envelope> queue;
+	MessageDispatcher(int tNum) {
+		queue= new LinkedBlockingQueue<Envelope>();
 		for (int i = 0; i < tNum; i++) {
 			new MessageHandlerThread(queue).start();
 
 		}
 	}
 
-	public static MessageDispatcher getMessageDispatcher(){
-		if(singleton==null)
-			singleton=new MessageDispatcher(HandlingThreadNumber);
-		return singleton;
-		
-	}
-	public synchronized void enqueue(Message m) {
+	public synchronized void enqueue(Message m, DataOutputStream d) {
 		try {
-			queue.put(m);
+
+			queue.put(new Envelope(m,d));
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

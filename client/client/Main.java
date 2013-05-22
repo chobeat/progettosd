@@ -29,7 +29,7 @@ public class Main {
 	 */
 	public static void main(String[] args) throws Exception {
 		// TODO Auto-generated method stub
-		// new customTest(generateRandomPlayer()+"1\ntestquit\n").start();
+			
 		runParallelTest();
 		//runPlain();
 	}
@@ -125,10 +125,10 @@ public class Main {
 
 	public void playMatch() throws IOException, JAXBException,
 			ActiveMatchNotPresent {
-		System.out.println("Inizio partita");
-		System.out.println(activeMatch);
-		peerManager=new PeerManager(this,me, activeMatch.playerList);
+		System.out.println("Inizio partita "+activeMatch.name);
 		
+		peerManager=new PeerManager(this,me, activeMatch.playerList);
+		peerManager.tm.joinRing();
 		if (activeMatch == null) {
 			throw new ActiveMatchNotPresent();
 		}
@@ -139,10 +139,6 @@ public class Main {
 
 			switch (selection) {
 			case ("1"): {
-				System.out.println("A chi vuoi mandare?");
-				int porta=Integer.parseInt(in.readLine());
-				System.out.println("Mando a "+porta);
-				peerManager.send(new TokenMessage(), porta);
 			}
 			case ("2"): {
 			while(true){try {
@@ -185,12 +181,15 @@ public class Main {
 		first.join(2000);
 
 		String clients[] = { // generateRandomPlayer()+"1\n\",
-		generateRandomPlayer() + "1\n1\n13334",
-		// generateRandomPlayer()+"1\ntestquit",
-
+		generateRandomPlayer() + "1\n",
+		 generateRandomPlayer()+"1\n",
+			generateRandomPlayer() + "1\n",
+			 generateRandomPlayer()+"1\n",
 		};
 		for (String i : clients) {
-			new customTest(i).start();
+		Thread t=new customTest(i);
+			t.start();
+			t.join(1000);
 		}
 
 	}

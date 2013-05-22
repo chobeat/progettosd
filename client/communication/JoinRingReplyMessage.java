@@ -2,14 +2,18 @@ package communication;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
+import common.Player;
+
 import distributed.PeerManager;
 
 @XmlRootElement
-public class DeathMessage extends Message {
-	
+public class JoinRingReplyMessage extends Message {
+
+	public Player newPrev;
+
 	@Override
 	public void execute(PeerManager pm){
-		System.out.println("Sono morto");
-		
+	pm.tm.onJoinRingReplyMessageReceived(this);	
+	
 	}
 }

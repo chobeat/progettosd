@@ -19,39 +19,42 @@ import communication.Message;
 public class CustomMarshaller {
 	JAXBContext context;
 	private static CustomMarshaller singleton;
-	
-	public static CustomMarshaller getCustomMarshaller(){
-		
-		if(singleton==null)
-			singleton=new  CustomMarshaller();
-		
+
+	public static CustomMarshaller getCustomMarshaller() {
+
+		if (singleton == null)
+			singleton = new CustomMarshaller();
+
 		return singleton;
 	}
-	
-	public String marshal(Message o) throws JAXBException{
-	context = JAXBContext.newInstance(o.getClass());
-	
-	
-	final Marshaller marshaller = context.createMarshaller();
 
-    final StringWriter stringWriter = new StringWriter();
+	public String marshal(Message o) throws JAXBException {
+		context = JAXBContext.newInstance(o.getClass());
 
-	marshaller.marshal(o, stringWriter);	
-	return stringWriter.toString();
+		final Marshaller marshaller = context.createMarshaller();
+
+		final StringWriter stringWriter = new StringWriter();
+
+		marshaller.marshal(o, stringWriter);
+		return stringWriter.toString();
 	}
-	
 
-	public Message unmarshal(String string) throws JAXBException, ParserConfigurationException, SAXException, IOException, ClassNotFoundException, DOMException{
+	public Message unmarshal(String string) throws JAXBException,
+			ParserConfigurationException, SAXException, IOException,
+			ClassNotFoundException, DOMException {
 		DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
 		DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-		Document doc = dBuilder.parse(new ByteArrayInputStream(string.getBytes()));
+		Document doc = dBuilder.parse(new ByteArrayInputStream(string
+				.getBytes()));
 		doc.getDocumentElement().normalize();
-		 doc.getElementById("type");
+		doc.getElementById("type");
 		communication.Message received;
-			received = (communication.Message) JAXB.unmarshal(new StringReader(string), Class.forName(doc.getElementsByTagName("type").item(0).getTextContent()));
-		
-		Class.forName(received.type).cast(received);  
+		received = (communication.Message) JAXB.unmarshal(new StringReader(
+				string), Class.forName(doc.getElementsByTagName("type").item(0)
+				.getTextContent()));
+
+		Class.forName(received.type).cast(received);
 		return received;
-		
+
 	}
 }

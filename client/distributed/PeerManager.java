@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -24,39 +25,61 @@ import client.Main;
 import sun.nio.ch.ThreadPool;
 
 import common.Player;
+import communication.JoinRingReplyMessage;
 import communication.Message;
 
 public class PeerManager {
-	Map<Integer,Socket> connectionList;
+	Map<Integer, Peer> connectionList;
 	Executor executor;
 	ListenDispatcher listener;
-	Main main;
-	public PeerManager(Main m,Player me,List<Player> pl) throws IOException{
-		main=m;
-		connectionList=new HashMap<Integer,Socket>();
-		listener= new ListenDispatcher(this);
+
+	public Main main;
+
+	public MessageDispatcher md;
+	public TokenManager tm;
+
+	public PeerManager(Main m, Player me, List<Player> pl) throws IOException {
+		main = m;
+		md = new MessageDispatcher(2);
+		connectionList = new HashMap<Integer, Peer>();
+		listener = new ListenDispatcher(this);
 		listener.start();
-		List<Player> localMap=pl;
-		
-		for(Player p:localMap){
-			if(p.getPort()!=me.getPort())
-			connectionList.put(p.getPort(), new Socket(p.getAddr(),p.getPort()));
-			
+		tm = new TokenManager(this);
+		List<Player> localMap = pl;
+
+		for (Player p : localMap) {
+			System.out.println(p);
+				joinPeerList(p);
+
 		}
-		
-		
+
 	}
-	public void send(Message m, int port) throws IOException, JAXBException{
-		System.out.println("Connection list"+connectionList.size());
-		Socket s=connectionList.get(port);
-		if(s==null){
-			System.out.println("Giocatore"+port+" non presente");
-			
+
+	public void send(Message m, int port) throws IOException, JAXBException {
+		Socket s = connectionList.get(port).socket;
+		if (s == null) {
+			System.out.println("Giocatore" + port + " non presente");
+
 			System.exit(0);
 		}
-		DataOutputStream output=new DataOutputStream(s.getOutputStream());
-		String msg=CustomMarshaller.getCustomMarshaller().marshal(m);
-		output.writeBytes(msg+"\n");
+		m.sender = main.me;
+
+		md.enqueue(m, new DataOutputStream(connectionList.get(port).output));
 	}
-	
+	public Peer joinPeerList(Player p){
+		Peer n;
+		try {
+			n = new Peer(new Socket(p.getAddr(), p.getPort()), p);
+
+			connectionList.put(p.getPort(),n );
+			return n;
+		} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				return null;
+		}
+	}
+
+
+
 }

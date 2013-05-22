@@ -5,11 +5,11 @@ import javax.xml.bind.annotation.XmlRootElement;
 import distributed.PeerManager;
 
 @XmlRootElement
-public class DeathMessage extends Message {
-	
+public class SetMeNextMessage extends Message {
+
 	@Override
 	public void execute(PeerManager pm){
-		System.out.println("Sono morto");
-		
+	pm.tm.onSetMeNextMessageReceived(this);	
+	
 	}
 }
