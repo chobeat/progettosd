@@ -26,11 +26,12 @@ public class ListenDispatcher extends Thread {
 		while(true){
 			try {
 				s=socket.accept();
+					
 			   new ListenThread(s,pm).start();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-			}
+			} 
 		}
 		
 	}

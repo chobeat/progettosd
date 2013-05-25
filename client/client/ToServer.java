@@ -56,7 +56,6 @@ public class ToServer {
 				.put(ClientResponse.class, params);
 		
 
-		System.out.println(response);
 		if(response.getStatus()==410){
 			matchCache[localID-1]=null;
 		
@@ -67,7 +66,7 @@ public class ToServer {
 		
 	}
 	
-	public boolean quit() throws JAXBException{
+	public boolean removePlayer(Player p) throws JAXBException{
 		final JAXBContext context = JAXBContext.newInstance(Player.class);
 		final Marshaller marshaller = context.createMarshaller();
 		final StringWriter stringWriter = new StringWriter();
@@ -76,7 +75,7 @@ public class ToServer {
 		WebResource service = client.resource(getBaseURI());
 		Form params = new Form();
 		params.add("match", main.activeMatch.getId());
-		marshaller.marshal(main.me, stringWriter);
+		marshaller.marshal(p, stringWriter);
 		params.add("player", stringWriter.toString());
 		try{service.path("match")
 				.path("removeplayer")

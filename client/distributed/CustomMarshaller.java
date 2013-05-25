@@ -28,7 +28,7 @@ public class CustomMarshaller {
 		return singleton;
 	}
 
-	public String marshal(Message o) throws JAXBException {
+	public synchronized String marshal(Message o) throws JAXBException {
 		context = JAXBContext.newInstance(o.getClass());
 
 		final Marshaller marshaller = context.createMarshaller();
@@ -39,9 +39,11 @@ public class CustomMarshaller {
 		return stringWriter.toString();
 	}
 
-	public Message unmarshal(String string) throws JAXBException,
-			ParserConfigurationException, SAXException, IOException,
+	public synchronized Message unmarshal(String string) throws JAXBException,
+	
+	ParserConfigurationException, SAXException, IOException,
 			ClassNotFoundException, DOMException {
+		if(string==null||string==""){return null;}
 		DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
 		DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
 		Document doc = dBuilder.parse(new ByteArrayInputStream(string

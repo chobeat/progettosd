@@ -1,6 +1,7 @@
 package client;
 
 import common.*;
+import communication.RemoveMeFromYourListMessage;
 import communication.TokenMessage;
 
 import java.io.BufferedReader;
@@ -19,7 +20,7 @@ import distributed.PeerManager;
 import test.customTest;
 
 public class Main {
-	ToServer server;
+	public ToServer server;
 	BufferedReader in;
 	public Player me;
 	Match activeMatch;
@@ -128,18 +129,17 @@ public class Main {
 		System.out.println("Inizio partita "+activeMatch.name);
 		
 		peerManager=new PeerManager(this,me, activeMatch.playerList);
-		peerManager.tm.joinRing();
+		peerManager.startMatch();
 		if (activeMatch == null) {
 			throw new ActiveMatchNotPresent();
 		}
 			String selection;
 		while (true) {
-
 			selection = in.readLine();
-
 			switch (selection) {
 			case ("1"): {
-			}
+				
+				}
 			case ("2"): {
 			while(true){try {
 				Thread.sleep(1000);
@@ -153,9 +153,12 @@ public class Main {
 			case ("4"): {
 			}
 			case ("testquit"): {
-				System.out.println("Esco");
-				server.quit();
-				System.exit(0);
+				
+				peerManager.gameLost(server);
+				
+				
+			//	server.quit();
+			//	System.exit(0);
 			}
 			default: {
 				
@@ -178,20 +181,23 @@ public class Main {
 		Thread first = new customTest(generateRandomPlayer()
 				+ "0\n partita\n2");
 		first.start();
-		first.join(2000);
+		first.join(1000);
 
 		String clients[] = { // generateRandomPlayer()+"1\n\",
 		generateRandomPlayer() + "1\n",
-		 generateRandomPlayer()+"1\n",
-			generateRandomPlayer() + "1\n",
-			 generateRandomPlayer()+"1\n",
-		};
+	//	 generateRandomPlayer()+"1\n",
+	};
 		for (String i : clients) {
 		Thread t=new customTest(i);
 			t.start();
-			t.join(1000);
+			//t.join(1000);
 		}
+		Thread.sleep(1500);
+		Thread t=new customTest(generateRandomPlayer()+"1\n");
+		t.start();
+	
+		
 
 	}
-
+	
 }

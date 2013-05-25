@@ -30,10 +30,9 @@ public class MessageHandlerThread extends Thread {
 					Envelope e=queue.take();
 					m=e.getMessage();
 					writer =e.getDestination();
-System.out.println("Sono " +Thread.currentThread().getId()+ " e invio");
-					writer.writeBytes(CustomMarshaller.getCustomMarshaller().marshal(m)+"\n");
+					writeMessage(writer, CustomMarshaller.getCustomMarshaller().marshal(m)+"\n");
 					
-				} catch (InterruptedException | IOException | JAXBException e) {
+				} catch (InterruptedException  | JAXBException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
@@ -42,4 +41,16 @@ System.out.println("Sono " +Thread.currentThread().getId()+ " e invio");
 		}
 		
 	}
+
+	public static synchronized void writeMessage(DataOutputStream writer, String m){
+
+		try {
+			writer.writeBytes(m);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+	}	
 }

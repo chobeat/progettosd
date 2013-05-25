@@ -31,6 +31,9 @@ public class ListenThread extends Thread {
 		while(true){
 			try {
 				Message m=CustomMarshaller.getCustomMarshaller().unmarshal(inFromClient.readLine());
+				if(m==null){
+					continue;
+				}
 				m.execute(pm);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block

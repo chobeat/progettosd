@@ -3,94 +3,264 @@ package distributed;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
 import java.util.Random;
+import java.util.Stack;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import javax.xml.bind.JAXBException;
 
+import common.Player;
+import communication.DummyBroadCastMessage;
+import communication.Envelope;
+import communication.ExitRingSetNextMessage;
+import communication.ExitRingSetPrevMessage;
+import communication.JoinRingAckMessage;
 import communication.JoinRingMessage;
-import communication.JoinRingReplyMessage;
-import communication.SetMeNextMessage;
+import communication.JoinToPrevMessage;
+import communication.JoinUnlockMessage;
+import communication.Message;
 import communication.TokenMessage;
 
 public class TokenManager {
-	
-	public Peer prev;
+
+	private Peer prev;
 	public Peer next;
 	public PeerManager pm;
-	public TokenManager(PeerManager p){pm=p;}
+	public boolean someoneEntering = false;
+	public boolean inRing = false;
+	public boolean tokenReleaseble=true;
+	public int lastTry = 0;
+	public TokenHolder tokenWaiter;
+	public BlockingQueue<Envelope> messageToBeSent;
+
+	public Stack<JoinRingMessage> waitingList;
+	public TokenHolder tokenReleaser;
+	public TokenManager(PeerManager p) {
+		pm = p;
+		waitingList = new Stack<JoinRingMessage>();
+		messageToBeSent=new LinkedBlockingQueue<Envelope>();
+	}
+
+	public void setPrev(Peer p) {
+		if (p == null) {
+			System.err.println("Prev è uguale a null");
+			System.err.println("Sono " + pm.main.me);
+			new Throwable().printStackTrace();
+
+		}
+		prev = p;
+
+	}
+
+
+	public void onTokenReceived(TokenMessage t) throws IOException {
+
+		System.out.println("Sono "+pm.main.me+
+		 " e ricevo token con counter "+t.counter);
+		
+		DummyBroadCastMessage dm= new DummyBroadCastMessage();
+		dm.sender=pm.main.me;
+		pm.sendAllExceptMe(dm);
+		pm.aw.waitForAck(pm.connectionList.size()-1);
+		System.out.println("Smetto di aspettare");
+		Envelope e;
+		for(int i=0;i<messageToBeSent.size();i++){
+			e=messageToBeSent.poll();
+			try {
+				pm.send(e.getMessage(),e.getDestination());
+			} catch (JAXBException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		}
+		
+		TokenMessage newToken = new TokenMessage();
+		newToken.counter = t.counter + 1;
 	
-	public void onTokenReceived(TokenMessage t) throws IOException{
-		System.out.println("Sono "+pm.main.me+ " e ricevo token con counter "+t.counter);
-try {
-			Thread.sleep(500);
-		} catch (InterruptedException e1) {
+		try {
+			while(!tokenReleaseble){
+			
+					tokenReleaser.wait();
+					
+				} 
+				pm.send(newToken, next.player.getPort());
+				 
+			}
+		catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+	} catch (JAXBException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-		TokenMessage newToken=new TokenMessage();
-		newToken.counter=t.counter+1;
-		try {
-			pm.send(newToken, next.player.getPort());
-		} catch (JAXBException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 		
+
 	}
-	
-	public void onJoinRingMessageReceived(JoinRingMessage jrm){
-	
-		Peer p=pm.joinPeerList(jrm.sender);
-		
-		JoinRingReplyMessage reply=new JoinRingReplyMessage();
-		reply.sender=pm.main.me;
-		reply.newPrev=prev.player;
+
+	public synchronized void onJoinRingMessageReceived(JoinRingMessage jrm) {
+		JoinRingAckMessage reply = new JoinRingAckMessage();
+
+		if (!inRing) {
+			reply.found = false;
+			System.out.println("Non sono ancora nel ring e sono "
+					+ pm.main.me.getPort());
+		} else {
+			if (someoneEntering) {
+				System.out.println("Sono nel ring e sono " + pm.main.me.getPort()+"Metto in coda "+jrm.sender.getPort());
+					
+				waitingList.push(jrm);
+				return;
+			}
+
+			System.out.println("Sono nel ring e sono " + pm.main.me.getPort()+"Rispondo a "+jrm.sender.getPort());
+			
+			someoneEntering = true;
+			Peer p;
+			try {
+				p = pm.addToPeerList(jrm.sender);
+
+				reply.sender = pm.main.me;
+				reply.found = true;
+				reply.newPrev = prev.player;
+
+				setPrev(p);
+			} catch (JAXBException | IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+
+		}
+
 		try {
 			pm.send(reply, jrm.sender.getPort());
 		} catch (IOException | JAXBException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		prev=p;
+
 	}
-	
-	public void joinRing() throws IOException, JAXBException{
-		//i'm alone
-		if(pm.connectionList.size()<2){
-			next=prev=pm.connectionList.get(pm.main.me.getPort());
-			TokenMessage newToken=new TokenMessage();
-			newToken.counter=0;
-			newToken.iddo=new Random().nextInt()%100;
-			pm.send(newToken, pm.main.me.getPort());
-		}
-		else
-		{
-			Peer target=(Peer) pm.connectionList.values().toArray()[0];
-			if(target.player.getPort()==pm.main.me.getPort())
-				target=(Peer) pm.connectionList.values().toArray()[1];
-			JoinRingMessage jrm= new JoinRingMessage();
-			jrm.sender=pm.main.me;
-			pm.send(jrm, target.player.getPort());
-			next=target;
-		}
+
+	public void addToMessageToBeSentQueue(Message m, int port){
+		messageToBeSent.add(new Envelope(m,pm.connectionList.get(port).output));
 		
 	}
 	
-	public void onJoinRingReplyMessageReceived(JoinRingReplyMessage joinRingReplyMessage) {
-		prev=pm.connectionList.get(joinRingReplyMessage.newPrev.getPort());
-		SetMeNextMessage smn=new SetMeNextMessage();
-		smn.sender=pm.main.me;
+	public void exitRing() {
+		ExitRingSetNextMessage n= new ExitRingSetNextMessage();
+		n.newNext=next.player;
+
+		ExitRingSetPrevMessage p= new ExitRingSetPrevMessage();
+		p.newPrev=prev.player;
+		
+			addToMessageToBeSentQueue(n,prev.player.getPort());
+
+			addToMessageToBeSentQueue(p,next.player.getPort());
+		
+
+	}
+
+	public void joinRing() throws IOException, JAXBException {
+
+		if (pm.connectionList.size() < 2) {
+			inRing = true;
+			next = pm.connectionList.get(pm.main.me.getPort());
+			setPrev(next);
+
+			TokenMessage newToken = new TokenMessage();
+			newToken.counter = 0;
+			newToken.iddo = new Random().nextInt() % 100;
+			pm.send(newToken, pm.main.me.getPort());
+
+		} else {
+			Peer target = (Peer) pm.connectionList.values().toArray()[lastTry++
+					% pm.connectionList.values().size()];
+
+			JoinRingMessage jrm = new JoinRingMessage();
+			jrm.sender = pm.main.me;
+			pm.send(jrm, target.player.getPort());
+			next = target;
+		}
+
+	}
+
+
+	public void onJoinRingAckMessageReceived(
+			JoinRingAckMessage joinRingReplyMessage) {
+		System.out.println("Ricevo ack e sono "
+				+ pm.main.me.getPort());
+
+		if (!joinRingReplyMessage.found) {
+			try {
+				joinRing();
+			} catch (IOException | JAXBException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+		} else {
+			setPrev(pm.connectionList.get(joinRingReplyMessage.newPrev
+					.getPort()));
+			JoinToPrevMessage smn = new JoinToPrevMessage();
+			smn.sender = pm.main.me;
+			inRing = true;
+			try {
+				pm.send(smn, prev.player.getPort());
+			} catch (IOException | JAXBException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+
+	public void onJoinToPrevMessageReceived(JoinToPrevMessage smn) {
+		System.out.println("Ricevo jointoprev e sono "
+				+ pm.main.me.getPort());
+
+		Player oldNext = next.player;
 		try {
-			pm.send(smn,prev.player.getPort());
+			next = pm.addToPeerList(smn.sender);
+		} catch (JAXBException | IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		JoinUnlockMessage jtpa = new JoinUnlockMessage();
+		jtpa.sender = pm.main.me;
+		try {
+			pm.send(jtpa, oldNext.getPort());
 		} catch (IOException | JAXBException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
 	}
-	
-	public void onSetMeNextMessageReceived(SetMeNextMessage smn){
-		next=pm.joinPeerList(smn.sender);
-		System.out.println("SetMeNextReceived next="+next.player+". Prev="+ prev.player);
+
+	public void onExitRingSetPrevMessageReceived(
+			ExitRingSetPrevMessage exitRingSetPrevMessage) {
+		setPrev(pm.connectionList.get(exitRingSetPrevMessage.newPrev.getPort()));
+
 	}
+
+	public void onExitRingSetNextMessageReceived(
+			ExitRingSetNextMessage exitRingSetNextMessage) {
+		next = pm.connectionList.get(exitRingSetNextMessage.newNext.getPort());
+
+	}
+
+	public void onJoinUnlockMessageReceived(JoinUnlockMessage joinUnlockMessage) {
+		someoneEntering = false;
+		System.out.println("Ricevo unlock e sono "
+				+ pm.main.me.getPort());
+
+		if (waitingList.size() > 0) {
+			JoinRingMessage jrm = waitingList.pop();
+			onJoinRingMessageReceived(jrm);
+
+		}
+
+	}
+
 }

@@ -103,17 +103,7 @@ public class ToyClient {
 		plist.add(p3);
 			
 		CustomMarshaller cm=new CustomMarshaller();
-		TokenMessage m=new TokenMessage();
-		
-		MessageDispatcher mh=MessageDispatcher.getMessageDispatcher();
-		mh.enqueue(m);
-		mh.enqueue(m);
-		mh.enqueue(m);
-		mh.enqueue(m);
-		Thread.sleep(2500);
-		mh.enqueue(m);
-		mh.enqueue(m);
-		mh.enqueue(m);
+	
 		
 	}
 
