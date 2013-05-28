@@ -14,6 +14,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import javax.xml.bind.JAXBException;
 
 import common.Player;
+import communication.BroadcastEnvelope;
 import communication.DummyBroadCastMessage;
 import communication.Envelope;
 import communication.ExitRingSetNextMessage;
@@ -61,22 +62,7 @@ public class TokenManager {
 
 		System.out.println("Sono "+pm.main.me+
 		 " e ricevo token con counter "+t.counter);
-		
-		DummyBroadCastMessage dm= new DummyBroadCastMessage();
-		dm.sender=pm.main.me;
-		pm.sendAllExceptMe(dm);
-		pm.aw.waitForAck(pm.connectionList.size()-1);
-		System.out.println("Smetto di aspettare");
-		Envelope e;
-		for(int i=0;i<messageToBeSent.size();i++){
-			e=messageToBeSent.poll();
-			try {
-				pm.send(e.getMessage(),e.getDestination());
-			} catch (JAXBException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-		}
+		sendTokenWaitingMessages();
 		
 		TokenMessage newToken = new TokenMessage();
 		newToken.counter = t.counter + 1;
@@ -101,22 +87,33 @@ public class TokenManager {
 
 	}
 
+	public void sendTokenWaitingMessages(){
+		List<Envelope> toBeSent=new LinkedList<Envelope>();
+		messageToBeSent.drainTo(toBeSent);
+for(Envelope envelope:toBeSent){
+		System.out.println("Smaltisco "+envelope.getMessage().getClass().getName());
+		pm.sendWithAck(envelope);
+	
+}
+
+	}
+	
 	public synchronized void onJoinRingMessageReceived(JoinRingMessage jrm) {
 		JoinRingAckMessage reply = new JoinRingAckMessage();
 
 		if (!inRing) {
 			reply.found = false;
-			System.out.println("Non sono ancora nel ring e sono "
-					+ pm.main.me.getPort());
+			//System.out.println("Non sono ancora nel ring e sono "
+				//	+ pm.main.me.getPort());
 		} else {
 			if (someoneEntering) {
-				System.out.println("Sono nel ring e sono " + pm.main.me.getPort()+"Metto in coda "+jrm.sender.getPort());
+				//System.out.println("Sono nel ring e sono " + pm.main.me.getPort()+"Metto in coda "+jrm.sender.getPort());
 					
 				waitingList.push(jrm);
 				return;
 			}
 
-			System.out.println("Sono nel ring e sono " + pm.main.me.getPort()+"Rispondo a "+jrm.sender.getPort());
+			//System.out.println("Sono nel ring e sono " + pm.main.me.getPort()+"Rispondo a "+jrm.sender.getPort());
 			
 			someoneEntering = true;
 			Peer p;
@@ -191,8 +188,7 @@ public class TokenManager {
 
 	public void onJoinRingAckMessageReceived(
 			JoinRingAckMessage joinRingReplyMessage) {
-		System.out.println("Ricevo ack e sono "
-				+ pm.main.me.getPort());
+		//System.out.println("RwaitForAckicevo ack e sono "	+ pm.main.me.getPort());
 
 		if (!joinRingReplyMessage.found) {
 			try {
@@ -218,8 +214,7 @@ public class TokenManager {
 	}
 
 	public void onJoinToPrevMessageReceived(JoinToPrevMessage smn) {
-		System.out.println("Ricevo jointoprev e sono "
-				+ pm.main.me.getPort());
+		//System.out.println("Ricevo jointoprev e sono "+ pm.main.me.getPort());
 
 		Player oldNext = next.player;
 		try {
@@ -252,8 +247,8 @@ public class TokenManager {
 
 	public void onJoinUnlockMessageReceived(JoinUnlockMessage joinUnlockMessage) {
 		someoneEntering = false;
-		System.out.println("Ricevo unlock e sono "
-				+ pm.main.me.getPort());
+	//	System.out.println("Ricevo unlock e sono "
+		//		+ pm.main.me.getPort());
 
 		if (waitingList.size() > 0) {
 			JoinRingMessage jrm = waitingList.pop();

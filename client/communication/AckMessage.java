@@ -8,6 +8,7 @@ public class AckMessage extends Message {
 
 	@Override
 	public synchronized void execute(PeerManager pm){
-		pm.aw.notify();
+		System.out.println("Sono "+pm.main.me+ "e ricevo ack");
+		
 	}
 }

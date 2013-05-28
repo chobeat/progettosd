@@ -30,32 +30,18 @@ public class ListenThread extends Thread {
 		
 		while(true){
 			try {
-				Message m=CustomMarshaller.getCustomMarshaller().unmarshal(inFromClient.readLine());
-				if(m==null){
-					continue;
+				String s=inFromClient.readLine();
+				
+				try {
+					pm.handleMessage( s);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
-				m.execute(pm);
+				
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (DOMException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (JAXBException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (ParserConfigurationException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (SAXException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-					
-		}
+				e.printStackTrace();}		}
 		
 	}
 

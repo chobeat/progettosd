@@ -97,7 +97,7 @@ public class ToServer {
 		WebResource service = client.resource(getBaseURI());
 		
 		try{service.path("match")
-				.path("removematch")
+				.path("end")
 				.type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
 				.accept(MediaType.APPLICATION_JSON)
 				.delete(Match.class,main.activeMatch.getId());

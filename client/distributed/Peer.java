@@ -7,7 +7,7 @@ import java.net.Socket;
 import common.Player;
 
 public class Peer {
-	DataOutputStream output;
+	public DataOutputStream output;
 	Player player;
 	Socket socket;
 	

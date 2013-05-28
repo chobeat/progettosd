@@ -17,7 +17,6 @@ import org.xml.sax.SAXException;
 import communication.Message;
 
 public class CustomMarshaller {
-	JAXBContext context;
 	private static CustomMarshaller singleton;
 
 	public static CustomMarshaller getCustomMarshaller() {
@@ -29,7 +28,8 @@ public class CustomMarshaller {
 	}
 
 	public synchronized String marshal(Message o) throws JAXBException {
-		context = JAXBContext.newInstance(o.getClass());
+
+		JAXBContext context = JAXBContext.newInstance(o.getClass());
 
 		final Marshaller marshaller = context.createMarshaller();
 

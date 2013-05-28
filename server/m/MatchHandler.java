@@ -80,10 +80,11 @@ public class MatchHandler {
 
   @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response endMatch(int ID) throws JSONException {
-	
-	 if(s.endMatch(ID))	  	
+  @Produces(MediaType.APPLICATION_XML)
+  public Response endMatch(MultivaluedMap<String, String> formParams) throws JSONException {
+	int id=(Integer.parseInt(formParams.get("id").get(0)));
+	System.out.println(id);
+	if(s.endMatch(id))	  	
 	  return Response.ok().build();
 	 else
 		return Response.notModified().build();

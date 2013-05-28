@@ -1,6 +1,7 @@
 package client;
 
 import common.*;
+import communication.DummyBroadCastMessage;
 import communication.RemoveMeFromYourListMessage;
 import communication.TokenMessage;
 
@@ -10,13 +11,21 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.UUID;
 
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.UriBuilder;
 import javax.xml.bind.JAXBException;
 
 import com.sun.corba.se.impl.transport.ListenerThreadImpl;
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.WebResource;
+import com.sun.jersey.api.client.config.ClientConfig;
+import com.sun.jersey.api.client.config.DefaultClientConfig;
+import com.sun.jersey.api.representation.Form;
 
 import distributed.ListenDispatcher;
 import distributed.PeerManager;
 
+import sun.misc.Cleaner;
 import test.customTest;
 
 public class Main {
@@ -25,14 +34,15 @@ public class Main {
 	public Player me;
 	Match activeMatch;
 	PeerManager peerManager;
+
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) throws Exception {
 		// TODO Auto-generated method stub
-			
+
 		runParallelTest();
-		//runPlain();
+		// runPlain();
 	}
 
 	public static void runPlain() throws IOException, JAXBException,
@@ -53,7 +63,7 @@ public class Main {
 		String name = in.readLine();
 		System.out.println("Quale porta vuoi usare?");
 		int port = Integer.parseInt(in.readLine());
-		me=server.createPlayer(name, port);
+		me = server.createPlayer(name, port);
 		// Match selection
 		activeMatch = this.matchSelection();
 
@@ -126,44 +136,32 @@ public class Main {
 
 	public void playMatch() throws IOException, JAXBException,
 			ActiveMatchNotPresent {
-		System.out.println("Inizio partita "+activeMatch.name);
-		
-		peerManager=new PeerManager(this,me, activeMatch.playerList);
+		System.out.println("Inizio partita " + activeMatch.name);
+
+		peerManager = new PeerManager(this, me, activeMatch.playerList);
 		peerManager.startMatch();
 		if (activeMatch == null) {
 			throw new ActiveMatchNotPresent();
 		}
-			String selection;
+		String selection;
 		while (true) {
 			selection = in.readLine();
-			switch (selection) {
-			case ("1"): {
-				
-				}
-			case ("2"): {
-			while(true){try {
-				Thread.sleep(1000);
+			try {
+				Thread.sleep(100);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-			}}
 			}
-			case ("3"): {
+			if (selection != null)
+				System.out.println(selection);
+			DummyBroadCastMessage dm = new DummyBroadCastMessage();
+			dm.sender = me;
+			if (selection == "1") {
+				System.out.println("Entro\n\n\n\n");
+				peerManager.sendAllWithAckAtToken(dm);
+
 			}
-			case ("4"): {
-			}
-			case ("testquit"): {
-				
-				peerManager.gameLost(server);
-				
-				
-			//	server.quit();
-			//	System.exit(0);
-			}
-			default: {
-				
-			}
-			}
+			// peerManager.game.move(selection);
 
 		}
 
@@ -176,28 +174,43 @@ public class Main {
 
 	static int port = 13333;
 
-	public static void runParallelTest() throws InterruptedException {
+	public static void runParallelTest() throws InterruptedException,
+			IOException, JAXBException {
 
-		Thread first = new customTest(generateRandomPlayer()
-				+ "0\n partita\n2");
+		Thread first = new customTest(generateRandomPlayer() + "0\n partita\n");
 		first.start();
 		first.join(1000);
-
-		String clients[] = { // generateRandomPlayer()+"1\n\",
-		generateRandomPlayer() + "1\n",
-	//	 generateRandomPlayer()+"1\n",
-	};
-		for (String i : clients) {
-		Thread t=new customTest(i);
-			t.start();
-			//t.join(1000);
-		}
-		Thread.sleep(1500);
-		Thread t=new customTest(generateRandomPlayer()+"1\n");
-		t.start();
-	
+		/*
+		 * String clients[] = { // generateRandomPlayer()+"1\n\",
+		 * generateRandomPlayer() + "1\n", generateRandomPlayer()+"1\n",
+		 * generateRandomPlayer()+"1\n", generateRandomPlayer()+"1\n1\n", }; for
+		 * (String i : clients) { Thread t=new customTest(i); t.start();
+		 * Thread.sleep(100); }
+		 */
+		cleanServer();
 		
+	}	
+
+	public static void cleanServer() {
+
+		ClientConfig config;
+		Client client;
+		config = new DefaultClientConfig();
+		client = Client.create(config);
+
+		WebResource service = client.resource(UriBuilder.fromUri(
+				"http://localhost:9876/progettosd").build());
+
+		Form form=new Form();
+		form.add("id", 1);
+		try {
+			service.path("match").path("end")
+					.type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
+					.delete(form);
+		} catch (Exception e) {e.printStackTrace();
+			
+		}
 
 	}
-	
+
 }
