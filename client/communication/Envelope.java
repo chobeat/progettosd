@@ -1,6 +1,7 @@
 package communication;
 
 import java.io.DataOutputStream;
+import java.io.IOException;
 
 import distributed.Peer;
 //Contiene il messaggio nella coda. Utilizzato per non serializzare DataOutputStream
@@ -18,7 +19,12 @@ public class Envelope {
 	}
 	public Envelope(Message m,  Peer p){
 		message=m;
-		destination=p.output;
+		try {
+			destination=p.getOutput();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	public Message getMessage() {

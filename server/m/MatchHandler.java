@@ -75,11 +75,10 @@ public class MatchHandler {
 	  return Response.ok().build();
   }
   
-  @DELETE
+  @POST
   @Path("/end")
 
   @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-
   @Produces(MediaType.APPLICATION_XML)
   public Response endMatch(MultivaluedMap<String, String> formParams) throws JSONException {
 	int id=(Integer.parseInt(formParams.get("id").get(0)));
@@ -89,7 +88,15 @@ public class MatchHandler {
 	 else
 		return Response.notModified().build();
   }
-  
+  @POST
+  @Path("/endall")
+
+  @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+  @Produces(MediaType.APPLICATION_XML)
+  public Response endAllMatch(MultivaluedMap<String, String> formParams) throws JSONException {
+	s.endAllMatch();	  	
+	return Response.ok().build();
+  }  
 
   @POST
   @Path("/create")

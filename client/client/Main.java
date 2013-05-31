@@ -2,10 +2,15 @@ package client;
 
 import common.*;
 import communication.DummyBroadCastMessage;
+import communication.MoveMessage;
 import communication.RemoveMeFromYourListMessage;
 import communication.TokenMessage;
 
+import game.Position;
+
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -14,6 +19,8 @@ import java.util.UUID;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 import javax.xml.bind.JAXBException;
+
+import org.eclipse.jdt.core.compiler.InvalidInputException;
 
 import com.sun.corba.se.impl.transport.ListenerThreadImpl;
 import com.sun.jersey.api.client.Client;
@@ -66,7 +73,7 @@ public class Main {
 		me = server.createPlayer(name, port);
 		// Match selection
 		activeMatch = this.matchSelection();
-
+		System.out.println("Match selezionato");
 		playMatch();
 
 	}
@@ -140,28 +147,25 @@ public class Main {
 
 		peerManager = new PeerManager(this, me, activeMatch.playerList);
 		peerManager.startMatch();
-		if (activeMatch == null) {
-			throw new ActiveMatchNotPresent();
-		}
 		String selection;
 		while (true) {
-			selection = in.readLine();
+		selection = in.readLine();
+			
+			if (selection == null)
+				continue;
+				
+				
+
 			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
+				Position p=peerManager.game.move(selection);
+				MoveMessage m=new MoveMessage();
+				m.sender=me;
+				m.newPosition=p;
+				peerManager.sendAllWithAckAtToken(m);
+			} catch (InvalidInputException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			if (selection != null)
-				System.out.println(selection);
-			DummyBroadCastMessage dm = new DummyBroadCastMessage();
-			dm.sender = me;
-			if (selection == "1") {
-				System.out.println("Entro\n\n\n\n");
-				peerManager.sendAllWithAckAtToken(dm);
-
-			}
-			// peerManager.game.move(selection);
 
 		}
 
@@ -180,16 +184,20 @@ public class Main {
 		Thread first = new customTest(generateRandomPlayer() + "0\n partita\n");
 		first.start();
 		first.join(1000);
-		/*
-		 * String clients[] = { // generateRandomPlayer()+"1\n\",
-		 * generateRandomPlayer() + "1\n", generateRandomPlayer()+"1\n",
-		 * generateRandomPlayer()+"1\n", generateRandomPlayer()+"1\n1\n", }; for
-		 * (String i : clients) { Thread t=new customTest(i); t.start();
-		 * Thread.sleep(100); }
-		 */
+
+		String clients[] = { // generateRandomPlayer()+"1\n\",
+		generateRandomPlayer() + "1\n", generateRandomPlayer() + "1\n",
+				generateRandomPlayer() + "1\n1\n1\n", generateRandomPlayer() + "1\n", };
+		for (String i : clients) {
+			Thread t = new customTest(i);
+			t.start();
+			//Thread.sleep(100);
+		}
+
+		Thread.sleep(1500);
 		cleanServer();
-		
-	}	
+
+	}
 
 	public static void cleanServer() {
 
@@ -201,14 +209,15 @@ public class Main {
 		WebResource service = client.resource(UriBuilder.fromUri(
 				"http://localhost:9876/progettosd").build());
 
-		Form form=new Form();
+		Form form = new Form();
 		form.add("id", 1);
 		try {
-			service.path("match").path("end")
+			service.path("match").path("endall")
 					.type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
-					.delete(form);
-		} catch (Exception e) {e.printStackTrace();
-			
+					.accept(MediaType.APPLICATION_XML).post(form);
+		} catch (Exception e) {
+			e.printStackTrace();
+
 		}
 
 	}

@@ -62,8 +62,14 @@ public class TokenManager {
 
 		System.out.println("Sono "+pm.main.me+
 		 " e ricevo token con counter "+t.counter);
-		sendTokenWaitingMessages();
 		
+		sendTokenWaitingMessages();
+		try {
+			Thread.sleep(100);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		TokenMessage newToken = new TokenMessage();
 		newToken.counter = t.counter + 1;
 	
@@ -73,7 +79,7 @@ public class TokenManager {
 					tokenReleaser.wait();
 					
 				} 
-				pm.send(newToken, next.player.getPort());
+				pm.send(newToken, next.player);
 				 
 			}
 		catch (InterruptedException e1) {
@@ -88,13 +94,10 @@ public class TokenManager {
 	}
 
 	public void sendTokenWaitingMessages(){
-		List<Envelope> toBeSent=new LinkedList<Envelope>();
-		messageToBeSent.drainTo(toBeSent);
-for(Envelope envelope:toBeSent){
-		System.out.println("Smaltisco "+envelope.getMessage().getClass().getName());
-		pm.sendWithAck(envelope);
-	
-}
+		//rimuovo e invio un solo messaggio per token per garantire fairness nel move
+		Envelope e=messageToBeSent.poll();
+		if(e!=null)
+		pm.sendWithAck(e);
 
 	}
 	
@@ -134,16 +137,22 @@ for(Envelope envelope:toBeSent){
 		}
 
 		try {
-			pm.send(reply, jrm.sender.getPort());
-		} catch (IOException | JAXBException e) {
-			// TODO Auto-generated catch block
+			pm.send(reply, jrm.sender);
+		} catch (IOException | JAXBException |NullPointerException e ) {
+		
+		System.out.println("Porta= "+jrm.sender.getPort());
 			e.printStackTrace();
 		}
 
 	}
 
 	public void addToMessageToBeSentQueue(Message m, int port){
-		messageToBeSent.add(new Envelope(m,pm.connectionList.get(port).output));
+		try {
+			messageToBeSent.add(new Envelope(m,pm.connectionList.get(port).getOutput()));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 	}
 	
@@ -171,7 +180,7 @@ for(Envelope envelope:toBeSent){
 			TokenMessage newToken = new TokenMessage();
 			newToken.counter = 0;
 			newToken.iddo = new Random().nextInt() % 100;
-			pm.send(newToken, pm.main.me.getPort());
+			pm.send(newToken, pm.main.me);
 
 		} else {
 			Peer target = (Peer) pm.connectionList.values().toArray()[lastTry++
@@ -179,7 +188,7 @@ for(Envelope envelope:toBeSent){
 
 			JoinRingMessage jrm = new JoinRingMessage();
 			jrm.sender = pm.main.me;
-			pm.send(jrm, target.player.getPort());
+			pm.send(jrm, target.player);
 			next = target;
 		}
 
@@ -205,7 +214,7 @@ for(Envelope envelope:toBeSent){
 			smn.sender = pm.main.me;
 			inRing = true;
 			try {
-				pm.send(smn, prev.player.getPort());
+				pm.send(smn, prev.player);
 			} catch (IOException | JAXBException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -226,7 +235,7 @@ for(Envelope envelope:toBeSent){
 		JoinUnlockMessage jtpa = new JoinUnlockMessage();
 		jtpa.sender = pm.main.me;
 		try {
-			pm.send(jtpa, oldNext.getPort());
+			pm.send(jtpa, oldNext);
 		} catch (IOException | JAXBException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

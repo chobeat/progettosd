@@ -64,6 +64,11 @@ public class Server {
 		m.removePlayer(p);
 		return m;
 	}
+	
+	public void endAllMatch(){
+		
+		matchList.clear();
+	}
 
 	public Match joinMatch(Player p,int id){
 		try{

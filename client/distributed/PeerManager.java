@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import javax.xml.bind.JAXBException;
@@ -32,7 +33,7 @@ import communication.Message;
 import communication.RemoveMeFromYourListMessage;
 
 public class PeerManager {
-	Map<Integer, Peer> connectionList;
+	ConcurrentHashMap<Integer, Peer> connectionList;
 	ListenDispatcher listener;
 
 	public Main main;
@@ -47,17 +48,16 @@ public class PeerManager {
 		AckQueue = new LinkedBlockingQueue<AckMessage>();
 
 		main = m;
-		md = new MessageDispatcher(2, this);
-		connectionList = new HashMap<Integer, Peer>();
-		tm = new TokenManager(this);
-		List<Player> localMap = pl;
-		InboundWorker iw = new InboundWorker(this);
-		iw.start();
 
+		connectionList = new ConcurrentHashMap<Integer, Peer>();
+		final List<Player> localList = pl;
+		tm = new TokenManager(this);
+		
 		listener = new ListenDispatcher(this);
 		listener.start();
-		game = new Game(this);
-		for (Player p : localMap) {
+
+		final PeerManager myself=this;
+			for (Player p : localList) {
 			try {
 				addToPeerList(p);
 			} catch (IOException e) {
@@ -67,12 +67,16 @@ public class PeerManager {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-		}
+					}
+
+		InboundWorker iw = new InboundWorker(this);
+		iw.start();
+		md = new MessageDispatcher(2, this);
+		game = new Game(this);
 
 	}
 
 	public void startMatch() {
-
 		try {
 			tm.joinRing();
 			AddMeToYourListMessage m = new AddMeToYourListMessage();
@@ -99,23 +103,35 @@ public class PeerManager {
 		return connectionList.size() - 1;
 	}
 
-	public void send(Message m, int port) throws IOException, JAXBException {
-		Socket s = connectionList.get(port).socket;
+	public void send(Message m, Player player) throws IOException, JAXBException {
+		int port=player.getPort();
+		Peer p=connectionList.get(port);
+		
+		if(p==null){
+			p=addToPeerList(player);
+		}
+		Socket s = p.getSocket();
+			
 		if (s == null) {
 			System.out.println("Giocatore" + port + " non presente");
 
 			System.exit(0);
 		}
 		m.sender = main.me;
-
-		send(m, connectionList.get(port).output);
+		
+		send(m, new DataOutputStream(s.getOutputStream()));
 	}
 
 	public void send(Message m, DataOutputStream out) throws IOException,
 			JAXBException {
-
+		try{
 		md.enqueue(m, out);
-
+		}catch(NullPointerException e){
+			System.out.println("Sono "+main.me.getPort()+" fallisco mandando "+m.getClass().getName());
+			e.printStackTrace();
+			
+			
+		}
 	}
 
 	public void send(Envelope e) {
@@ -180,6 +196,9 @@ public class PeerManager {
 
 		try {
 			addToPeerList(m.sender);
+			AckMessage ack=new AckMessage();
+			ack.sender=main.me;
+			send(ack,m.sender);
 		} catch (JAXBException | IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -198,7 +217,7 @@ public class PeerManager {
 
 				Socket s = new Socket(p.getAddr(), p.getPort());
 
-				n = new Peer(s, p);
+				n = new Peer(this,s, p);
 
 				connectionList.put(p.getPort(), n);
 
@@ -249,7 +268,7 @@ public class PeerManager {
 	public void removeFromPeerList(Player p) {
 		Peer peer = connectionList.get(p.getPort());
 		try {
-			peer.socket.close();
+			peer.getSocket().close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

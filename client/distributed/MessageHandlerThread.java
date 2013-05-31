@@ -38,7 +38,7 @@ public class MessageHandlerThread extends Thread {
 				if (e instanceof BroadcastEnvelope) {
 					for (Peer p : pm.connectionList.values()) {
 						if(p.player.getPort()!=pm.main.me.getPort()){
-						writeMessage(p.output, CustomMarshaller
+						writeMessage(new DataOutputStream(p.getOutput()), CustomMarshaller
 								.getCustomMarshaller().marshal(m) + "\n");
 						}
 						}
@@ -49,7 +49,7 @@ public class MessageHandlerThread extends Thread {
 					writeMessage(writer, CustomMarshaller.getCustomMarshaller()
 							.marshal(m) + "\n");
 				}
-			} catch (InterruptedException | JAXBException e) {
+			} catch (InterruptedException | JAXBException | IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
