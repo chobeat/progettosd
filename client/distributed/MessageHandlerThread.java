@@ -27,18 +27,17 @@ public class MessageHandlerThread extends Thread {
 
 	@Override
 	public void run() {
-		Message m;
+		Message m=null;
 		DataOutputStream writer;
 		while (true) {
 
 			try {
 				Envelope e = queue.take();
 				m = e.getMessage();
-
 				if (e instanceof BroadcastEnvelope) {
 					for (Peer p : pm.connectionList.values()) {
 						if(p.player.getPort()!=pm.main.me.getPort()){
-						writeMessage(new DataOutputStream(p.getOutput()), CustomMarshaller
+						writeMessage(pm,new DataOutputStream(p.getOutput()), CustomMarshaller
 								.getCustomMarshaller().marshal(m) + "\n");
 						}
 						}
@@ -46,27 +45,24 @@ public class MessageHandlerThread extends Thread {
 
 					writer = e.getDestination();
 					// System.out.println("Mando "+m.getClass().getName());
-					writeMessage(writer, CustomMarshaller.getCustomMarshaller()
+					writeMessage(pm,writer, CustomMarshaller.getCustomMarshaller()
 							.marshal(m) + "\n");
 				}
 			} catch (InterruptedException | JAXBException | IOException e) {
-				// TODO Auto-generated catch block
+				
+				//System.out.println("Eccezzione in "+pm.main.me.getPort()+""+Thread.currentThread().getId()+". Sono "+pm.main.me.getPort()+" Mando:"+ m.type);
+				
 				e.printStackTrace();
 			}
-
+			
 		}
 
 	}
 
-	public static synchronized void writeMessage(DataOutputStream writer,
-			String m) {
+	public static synchronized void writeMessage(PeerManager pm,DataOutputStream writer,
+			String m) throws IOException {
 
-		try {
 			writer.writeBytes(m);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
 	}
 }

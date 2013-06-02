@@ -14,11 +14,23 @@ import distributed.PeerManager;
 
 public class Game {
 	PeerManager pm;
-	Position currentPosition;
-	
+public	Position currentPosition;
+    int points;
+    int WINNING_SCORE=3;
+    
 	public Game(PeerManager pm) {
-		currentPosition=new Position(new Random().nextInt()%99,new Random().nextInt()%99);
+		points=0;
+		currentPosition=new Position(new Random().nextInt(Position.MAX_GRID_SIZE),new Random().nextInt(Position.MAX_GRID_SIZE));
+		System.out.println("Parto in "+currentPosition);
 		this.pm=pm;
+	}
+	
+	public void scorePoint(){
+		points++;
+		if(points>=WINNING_SCORE){
+			pm.win();
+		}
+		
 	}
 	
 	public Position move(String direction) throws InvalidInputException{
@@ -27,6 +39,7 @@ public class Game {
 		case("2"):currentPosition.addX();break;
 		case("3"):currentPosition.addY();break;
 		case("4"):currentPosition.lessX();break;
+		case("q"):pm.gameLost();
 		default: throw new InvalidInputException();	
 		}
 		
@@ -34,6 +47,7 @@ public class Game {
 	}
 	public void onMoveMessageReceived(MoveMessage m){
 		System.out.println("Ricevo una move da "+m.sender.getPort());
+		System.out.println("Sono in "+currentPosition+" ,"+m.sender.getPort()+" è in "+m.newPosition);
 		if(m.newPosition.equals(currentPosition))
 			pm.gameLost();
 		

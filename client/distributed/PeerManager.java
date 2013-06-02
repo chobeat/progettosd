@@ -4,11 +4,8 @@ import game.Game;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.ConnectException;
 import java.net.Socket;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -20,8 +17,6 @@ import org.w3c.dom.DOMException;
 import org.xml.sax.SAXException;
 
 import client.Main;
-import client.ToServer;
-
 import common.Player;
 import communication.AckMessage;
 import communication.AddMeToYourListMessage;
@@ -30,20 +25,22 @@ import communication.DeathMessage;
 import communication.DummyBroadCastMessage;
 import communication.Envelope;
 import communication.Message;
-import communication.RemoveMeFromYourListMessage;
+import communication.VictoryMessage;
 
 public class PeerManager {
 	ConcurrentHashMap<Integer, Peer> connectionList;
 	ListenDispatcher listener;
-
+	final int DISPATCH_THREADS = 2;
 	public Main main;
 	public MessageDispatcher md;
 	public TokenManager tm;
 	public BlockingQueue<Message> inboundMessageQueue;
 	public BlockingQueue<AckMessage> AckQueue;
 	public Game game;
+	Integer sendQueueWaiter;
 
 	public PeerManager(Main m, Player me, List<Player> pl) {
+		sendQueueWaiter = 0;
 		inboundMessageQueue = new LinkedBlockingQueue<Message>();
 		AckQueue = new LinkedBlockingQueue<AckMessage>();
 
@@ -52,12 +49,11 @@ public class PeerManager {
 		connectionList = new ConcurrentHashMap<Integer, Peer>();
 		final List<Player> localList = pl;
 		tm = new TokenManager(this);
-		
+
 		listener = new ListenDispatcher(this);
 		listener.start();
 
-		final PeerManager myself=this;
-			for (Player p : localList) {
+		for (Player p : localList) {
 			try {
 				addToPeerList(p);
 			} catch (IOException e) {
@@ -67,11 +63,11 @@ public class PeerManager {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-					}
+		}
 
 		InboundWorker iw = new InboundWorker(this);
 		iw.start();
-		md = new MessageDispatcher(2, this);
+		md = new MessageDispatcher(DISPATCH_THREADS, this);
 		game = new Game(this);
 
 	}
@@ -103,34 +99,35 @@ public class PeerManager {
 		return connectionList.size() - 1;
 	}
 
-	public void send(Message m, Player player) throws IOException, JAXBException {
-		int port=player.getPort();
-		Peer p=connectionList.get(port);
-		
-		if(p==null){
-			p=addToPeerList(player);
+	public void send(Message m, Player player) throws IOException,
+			JAXBException {
+		int port = player.getPort();
+		Peer p = connectionList.get(port);
+
+		if (p == null) {
+			p = addToPeerList(player);
 		}
 		Socket s = p.getSocket();
-			
+
 		if (s == null) {
 			System.out.println("Giocatore" + port + " non presente");
 
 			System.exit(0);
 		}
 		m.sender = main.me;
-		
+
 		send(m, new DataOutputStream(s.getOutputStream()));
 	}
 
 	public void send(Message m, DataOutputStream out) throws IOException,
 			JAXBException {
-		try{
-		md.enqueue(m, out);
-		}catch(NullPointerException e){
-			System.out.println("Sono "+main.me.getPort()+" fallisco mandando "+m.getClass().getName());
+		try {
+			md.enqueue(m, out);
+		} catch (NullPointerException e) {
+			System.out.println("Sono " + main.me.getPort()
+					+ " fallisco mandando " + m.getClass().getName());
 			e.printStackTrace();
-			
-			
+
 		}
 	}
 
@@ -196,9 +193,7 @@ public class PeerManager {
 
 		try {
 			addToPeerList(m.sender);
-			AckMessage ack=new AckMessage();
-			ack.sender=main.me;
-			send(ack,m.sender);
+			sendAck(m.sender);
 		} catch (JAXBException | IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -217,7 +212,7 @@ public class PeerManager {
 
 				Socket s = new Socket(p.getAddr(), p.getPort());
 
-				n = new Peer(this,s, p);
+				n = new Peer(this, s, p);
 
 				connectionList.put(p.getPort(), n);
 
@@ -227,12 +222,7 @@ public class PeerManager {
 				System.err.println("Sono " + main.me.getPort()
 						+ " Fallisco la connessione a+" + p.getPort()
 						+ ", riprovo");
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
+				
 			}
 
 		}
@@ -240,35 +230,31 @@ public class PeerManager {
 	}
 
 	public void gameLost() {
-
+		tm.blockToken();
+		System.out.println("Ho perso");
+		
+		tm.exitRing();
 		DeathMessage dm = new DeathMessage();
 		dm.sender = main.me;
+		dm.lastPosition = game.currentPosition;
 		sendAllWithAck(dm);
 
-		exitRing();
-
 		try {
-			main.server.endMatch();
+			main.server.removePlayer(main.me);
 		} catch (JAXBException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
-	}
-
-	public void exitRing() {
-		RemoveMeFromYourListMessage m = new RemoveMeFromYourListMessage();
-		m.sender = main.me;
-
-		sendAllExceptMe(m);
-		tm.exitRing();
-
+		tm.releaseToken();
 	}
 
 	public void removeFromPeerList(Player p) {
 		Peer peer = connectionList.get(p.getPort());
+		waitForEmptyQueue();
 		try {
 			peer.getSocket().close();
+
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -276,20 +262,28 @@ public class PeerManager {
 		connectionList.remove(p.getPort());
 	}
 
-	public void onRemoveMeFromYourListMessageReceived(
-			RemoveMeFromYourListMessage m) {
-		removeFromPeerList(m.sender);
+	public synchronized void waitForEmptyQueue(){
+		try {
+			
+		synchronized(sendQueueWaiter){
+			System.out.println("TODO fare il wait for queue");
+		sendQueueWaiter.wait(500);
+		}
+		
+	}catch (InterruptedException |IllegalMonitorStateException e) {
+			System.out.println("Eccezione in" +main.me.getPort());
+			e.printStackTrace();
+		}
+
+
+	
 	}
 
 	public void onDummyBroadCastMessageReceived(
 			DummyBroadCastMessage dummyBroadCastMessage) {
 
 		System.out.println("Ricevo Dummys");
-		AckMessage m = new AckMessage();
-		m.sender = main.me;
-		send(new Envelope(m, connectionList.get(dummyBroadCastMessage.sender
-				.getPort())));
-
+		sendAck(dummyBroadCastMessage.sender);
 	}
 
 	public void handleMessage(String s) throws InterruptedException {
@@ -315,6 +309,41 @@ public class PeerManager {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+
+	}
+
+	public void onDeathMessageReceived(DeathMessage deathMessage) {
+		System.out.println(deathMessage.sender.getPort() + " è morto");
+		if (game.currentPosition.equals(deathMessage.lastPosition)) {
+			game.scorePoint();
+
+		}
+		sendAck(deathMessage.sender);
+
+		removeFromPeerList(deathMessage.sender);
+	}
+
+	public void sendAck(Player p) {
+		AckMessage am = new AckMessage();
+		am.sender = main.me;
+		try {
+			send(am, p);
+		} catch (IOException | JAXBException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+
+	public void win() {
+		VictoryMessage vm = new VictoryMessage();
+		vm.sender = main.me;
+		sendAllWithAck(vm);
+
+	}
+
+	public void onVictoryMessageReceived() {
+		// TODO Auto-generated method stub
 
 	}
 }

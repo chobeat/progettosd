@@ -1,16 +1,10 @@
 package client;
 
 import common.*;
-import communication.DummyBroadCastMessage;
 import communication.MoveMessage;
-import communication.RemoveMeFromYourListMessage;
-import communication.TokenMessage;
-
 import game.Position;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -22,17 +16,14 @@ import javax.xml.bind.JAXBException;
 
 import org.eclipse.jdt.core.compiler.InvalidInputException;
 
-import com.sun.corba.se.impl.transport.ListenerThreadImpl;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 import com.sun.jersey.api.representation.Form;
 
-import distributed.ListenDispatcher;
 import distributed.PeerManager;
 
-import sun.misc.Cleaner;
 import test.customTest;
 
 public class Main {
@@ -47,7 +38,7 @@ public class Main {
 	 */
 	public static void main(String[] args) throws Exception {
 		// TODO Auto-generated method stub
-
+		cleanServer();
 		runParallelTest();
 		// runPlain();
 	}
@@ -149,6 +140,14 @@ public class Main {
 		peerManager.startMatch();
 		String selection;
 		while (true) {
+			synchronized(peerManager.tm.tokenWaiter){
+			try {
+				peerManager.tm.tokenWaiter.wait();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			}
 		selection = in.readLine();
 			
 			if (selection == null)
@@ -163,8 +162,8 @@ public class Main {
 				m.newPosition=p;
 				peerManager.sendAllWithAckAtToken(m);
 			} catch (InvalidInputException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			System.out.println("Input non valido. Riprova");
+				continue;
 			}
 
 		}
@@ -186,16 +185,13 @@ public class Main {
 		first.join(1000);
 
 		String clients[] = { // generateRandomPlayer()+"1\n\",
-		generateRandomPlayer() + "1\n", generateRandomPlayer() + "1\n",
-				generateRandomPlayer() + "1\n1\n1\n", generateRandomPlayer() + "1\n", };
+		generateRandomPlayer() + "1\n", generateRandomPlayer() + "1\nq\n",
+				generateRandomPlayer() + "1\n", generateRandomPlayer() + "1\nq\n", };
 		for (String i : clients) {
 			Thread t = new customTest(i);
 			t.start();
-			//Thread.sleep(100);
+			Thread.sleep(300);
 		}
-
-		Thread.sleep(1500);
-		cleanServer();
 
 	}
 

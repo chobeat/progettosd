@@ -68,10 +68,11 @@ public class MatchHandler {
 
   @Produces(MediaType.APPLICATION_JSON)
   public Response removePlayer(MultivaluedMap<String, String> formParams) throws JSONException {
-	
+	 
 	  	Player player=JAXB.unmarshal(new StringReader(formParams.get("player").get(0)), Player.class);
-	  int ID= Integer.parseInt(formParams.get("match").get(0));
-	 s.removePlayer(ID, player);
+	  int id= Integer.parseInt(formParams.get("match").get(0));
+	  System.out.println("Rimuovo "+id);
+	  s.removePlayer(id, player);
 	  return Response.ok().build();
   }
   

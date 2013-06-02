@@ -1,5 +1,6 @@
 package common;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -25,8 +26,7 @@ public class Match {
 
 
 	public Match() {
-
-		playerList = new LinkedList<Player>();
+		playerList=Collections.synchronizedList( new LinkedList <Player>());
 	}
 
 
@@ -40,13 +40,16 @@ public class Match {
 	}
 
 	public synchronized void removePlayer(Player p) {
-		
+		Player toRemove=null;
 		for(Player i:playerList){
 		
 			if(i.getPort()==p.getPort()){
-				playerList.remove(i);
+				toRemove=i;
 			}
 			
+		}
+		if(toRemove!=null){
+			playerList.remove(toRemove);
 		}
 	
 

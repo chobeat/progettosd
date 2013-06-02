@@ -23,105 +23,100 @@ public class ToServer {
 	Client client;
 	Match[] matchCache;
 	Main main;
-	public ToServer(Main main){
-		
+
+	public ToServer(Main main) {
+
 		config = new DefaultClientConfig();
-		client=Client.create(config);
-		this.main=main;
+		client = Client.create(config);
+		this.main = main;
 	}
-	
-	
-	public Match joinMatch(int localID) throws JAXBException{
-		
-		Match match=matchCache[localID-1];
-		
-		
+
+	public Match joinMatch(int localID) throws JAXBException {
+
+		Match match = matchCache[localID - 1];
+
 		final JAXBContext contextP = JAXBContext.newInstance(Player.class);
 		final Marshaller marshallerP = contextP.createMarshaller();
-	       final StringWriter stringWriterP = new StringWriter();
-	       
-		marshallerP.marshal(main.me, stringWriterP); 
-     
+		final StringWriter stringWriterP = new StringWriter();
+
+		marshallerP.marshal(main.me, stringWriterP);
+
 		WebResource service = client.resource(getBaseURI());
 		Form params = new Form();
 		params.add("match", match.getId());
-		
+
 		params.add("player", stringWriterP.toString());
-		
-		
-		ClientResponse response= service.path("match")
-				.path("join")
+
+		ClientResponse response = service.path("match").path("join")
 				.type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
 				.accept(MediaType.APPLICATION_JSON)
 				.put(ClientResponse.class, params);
-		
 
-		if(response.getStatus()==410){
-			matchCache[localID-1]=null;
-		
+		if (response.getStatus() == 410) {
+			matchCache[localID - 1] = null;
+
 			throw new IndexOutOfBoundsException();
 		}
-		Match m=response.getEntity(Match.class);
+		Match m = response.getEntity(Match.class);
 		return m;
-		
+
 	}
-	
-	public boolean removePlayer(Player p) throws JAXBException{
+
+	public boolean removePlayer(Player p) throws JAXBException {
 		final JAXBContext context = JAXBContext.newInstance(Player.class);
 		final Marshaller marshaller = context.createMarshaller();
 		final StringWriter stringWriter = new StringWriter();
-		   
-		
+
 		WebResource service = client.resource(getBaseURI());
 		Form params = new Form();
 		params.add("match", main.activeMatch.getId());
 		marshaller.marshal(p, stringWriter);
 		params.add("player", stringWriter.toString());
-		try{service.path("match")
-				.path("removeplayer")
-				.type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
-				.accept(MediaType.APPLICATION_JSON)
-				.post(params);
-		//Uso post invece di delete per incompatibilità dell'implementazione di HttpURLConnection
-		}
-		catch(Exception e){
+		System.out.println("Provo a rimuovere "+p.getPort() +" dal match "+main.activeMatch.getId());
+		try {
+			service.path("match").path("removeplayer")
+					.type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
+					.accept(MediaType.APPLICATION_JSON).post(params);
+			// Uso post invece di delete per incompatibilità
+			// dell'implementazione di HttpURLConnection
+		} catch (Exception e) {
 			e.printStackTrace();
-			return false;}
-		return true;
-		
-	}
-
-	public boolean endMatch() throws JAXBException{
-			   
-		
-		WebResource service = client.resource(getBaseURI());
-		
-		try{service.path("match")
-				.path("end")
-				.type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
-				.accept(MediaType.APPLICATION_JSON)
-				.delete(Match.class,main.activeMatch.getId());
+			return false;
 		}
-		catch(Exception e){return false;}
 		return true;
-		
+
 	}
-	
-	
+/*
+	public boolean endMatch() throws JAXBException {
+
+		WebResource service = client.resource(getBaseURI());
+
+		try {
+			service.path("match").path("end")
+					.type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
+					.accept(MediaType.APPLICATION_JSON)
+					.delete(Match.class, main.activeMatch.getId());
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+
+	}
+*/
 	public Match createMatch(String name) throws JAXBException {
 		final JAXBContext context = JAXBContext.newInstance(Player.class);
 		final Marshaller marshaller = context.createMarshaller();
-		
-        // Create a stringWriter to hold the XML
-        final StringWriter stringWriter = new StringWriter();
- 
+
+		// Create a stringWriter to hold the XML
+		final StringWriter stringWriter = new StringWriter();
+
 		WebResource service = client.resource(getBaseURI());
 		Form params = new Form();
 		params.add("name", name);
 		marshaller.marshal(main.me, stringWriter);
 		params.add("player", stringWriter.toString());
-		ClientResponse cr = service.path("match")
-				.path("create")
+		ClientResponse cr = service.path("match").path("create")
 				.type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
 				.accept(MediaType.APPLICATION_JSON)
 				.post(ClientResponse.class, params);

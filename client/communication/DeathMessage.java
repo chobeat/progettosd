@@ -1,5 +1,7 @@
 package communication;
 
+import game.Position;
+
 import javax.xml.bind.annotation.XmlRootElement;
 
 import distributed.PeerManager;
@@ -7,9 +9,10 @@ import distributed.PeerManager;
 @XmlRootElement
 public class DeathMessage extends Message {
 	
+	public Position lastPosition;
 	@Override
 	public void execute(PeerManager pm){
-		System.out.println("Sono morto");
+		pm.onDeathMessageReceived(this);
 		
 	}
 }

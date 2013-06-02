@@ -4,7 +4,7 @@ public class Position {
 
 	int x;
 	int y;
-	int MAX_GRID_SIZE=99;
+	public static final int MAX_GRID_SIZE=99;
 	
 	public Position(int x,int y){
 		this.x=x;
@@ -43,6 +43,11 @@ public class Position {
 		return that.x==this.x&&that.y==that.x;
 			
 		
+	}
+	
+	@Override
+	public String toString(){
+		return "("+x+","+y+")";
 	}
 	public static void main (String args[]){
 		
