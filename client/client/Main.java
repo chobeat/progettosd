@@ -40,7 +40,7 @@ public class Main {
 		// TODO Auto-generated method stub
 		cleanServer();
 		runParallelTest();
-		// runPlain();
+		//runPlain();
 	}
 
 	public static void runPlain() throws IOException, JAXBException,
@@ -139,21 +139,20 @@ public class Main {
 		peerManager = new PeerManager(this, me, activeMatch.playerList);
 		peerManager.startMatch();
 		String selection;
+		synchronized(peerManager.tm.tokenWaiter){
+			
+		try {
+			peerManager.tm.tokenWaiter.wait();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		}
 		while (true) {
-			synchronized(peerManager.tm.tokenWaiter){
-			try {
-				peerManager.tm.tokenWaiter.wait();
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			}
 		selection = in.readLine();
 			
 			if (selection == null)
 				continue;
-				
-				
 
 			try {
 				Position p=peerManager.game.move(selection);
@@ -180,17 +179,17 @@ public class Main {
 	public static void runParallelTest() throws InterruptedException,
 			IOException, JAXBException {
 
-		Thread first = new customTest(generateRandomPlayer() + "0\n partita\n");
+		Thread first = new customTest(generateRandomPlayer() + "0\n partita\nq\n");
 		first.start();
 		first.join(1000);
 
-		String clients[] = { // generateRandomPlayer()+"1\n\",
-		generateRandomPlayer() + "1\n", generateRandomPlayer() + "1\nq\n",
-				generateRandomPlayer() + "1\n", generateRandomPlayer() + "1\nq\n", };
+		String clients[] = {  generateRandomPlayer()+"1\nq\n",
+	/*	generateRandomPlayer() + "1\nq\n",generateRandomPlayer()+"1\n2\n2\n3\n",
+		generateRandomPlayer() + "1\n1\n1\n"*/};
 		for (String i : clients) {
 			Thread t = new customTest(i);
 			t.start();
-			Thread.sleep(300);
+			Thread.sleep(100);
 		}
 
 	}

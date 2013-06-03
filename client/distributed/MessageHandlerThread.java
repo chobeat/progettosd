@@ -30,8 +30,8 @@ public class MessageHandlerThread extends Thread {
 		Message m=null;
 		DataOutputStream writer;
 		while (true) {
-
 			try {
+				pm.md.increaseCounter();
 				Envelope e = queue.take();
 				m = e.getMessage();
 				if (e instanceof BroadcastEnvelope) {
@@ -54,7 +54,8 @@ public class MessageHandlerThread extends Thread {
 				
 				e.printStackTrace();
 			}
-			
+			if(pm.md.queue.size()<=0)
+			pm.md.decreaseCounter();
 		}
 
 	}

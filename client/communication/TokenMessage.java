@@ -10,7 +10,6 @@ import distributed.PeerManager;
 @XmlRootElement
 public class TokenMessage extends Message {
 	public long counter;
-	public int iddo;
 	
 	public TokenMessage(){
 		

@@ -86,16 +86,26 @@ public class ToServer {
 		return true;
 
 	}
-/*
+
 	public boolean endMatch() throws JAXBException {
+		final JAXBContext context = JAXBContext.newInstance(Player.class);
 
 		WebResource service = client.resource(getBaseURI());
+		Form params = new Form();
+		final Marshaller marshaller = context.createMarshaller();
+		final StringWriter stringWriter = new StringWriter();
+
+		params.add("match", main.activeMatch.getId());
+		marshaller.marshal(main.me, stringWriter);
+
+
+		params.add("winner", stringWriter.toString());
 
 		try {
 			service.path("match").path("end")
 					.type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
 					.accept(MediaType.APPLICATION_JSON)
-					.delete(Match.class, main.activeMatch.getId());
+					.post(Match.class,params);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return false;
@@ -103,7 +113,7 @@ public class ToServer {
 		return true;
 
 	}
-*/
+
 	public Match createMatch(String name) throws JAXBException {
 		final JAXBContext context = JAXBContext.newInstance(Player.class);
 		final Marshaller marshaller = context.createMarshaller();

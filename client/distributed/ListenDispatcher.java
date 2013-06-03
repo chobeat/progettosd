@@ -3,6 +3,7 @@ package distributed;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -35,11 +36,17 @@ public class ListenDispatcher extends Thread {
 				
 					socketMap.put(s.getLocalPort(),s);
 			   new ListenThread(s,pm).start();
-			} catch (IOException e) {
+			}
+			catch(SocketException e){
+				return;
+			}
+			catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} 
+			
 		}
 		
 	}
+	
 }

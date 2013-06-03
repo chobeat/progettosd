@@ -67,7 +67,8 @@ public class PeerManager {
 
 		InboundWorker iw = new InboundWorker(this);
 		iw.start();
-		md = new MessageDispatcher(DISPATCH_THREADS, this);
+		md = new MessageDispatcher();
+		md.init(DISPATCH_THREADS, this);
 		game = new Game(this);
 
 	}
@@ -156,12 +157,16 @@ public class PeerManager {
 
 	public void sendSingleWithAck(Message m, DataOutputStream out) {
 		try {
+
 			send(m, out);
-			while (AckQueue.size() < 1) {
+			synchronized (AckQueue) {
+			if(AckQueue.isEmpty()){
+				
 				AckQueue.wait();
 			}
+			}
 
-			AckQueue.clear();
+			AckQueue.poll();
 		} catch (IOException | JAXBException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -186,7 +191,6 @@ public class PeerManager {
 		}
 
 		AckQueue.clear();
-		System.out.println("Ricevuti " + receivers + "ACK. Procedo.");
 	}
 
 	public void onAddMeToYourListMessageReceived(AddMeToYourListMessage m) {
@@ -230,8 +234,17 @@ public class PeerManager {
 	}
 
 	public void gameLost() {
+		synchronized(tm.tokenWaiter){
+		try {
+			tm.tokenWaiter.wait();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		}
 		tm.blockToken();
 		System.out.println("Ho perso");
+		
 		
 		tm.exitRing();
 		DeathMessage dm = new DeathMessage();
@@ -247,11 +260,17 @@ public class PeerManager {
 		}
 
 		tm.releaseToken();
+		try {
+			listener.socket.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	public void removeFromPeerList(Player p) {
 		Peer peer = connectionList.get(p.getPort());
-		waitForEmptyQueue();
+		md.waitEmptyQueue();
 		try {
 			peer.getSocket().close();
 
@@ -261,7 +280,7 @@ public class PeerManager {
 		}
 		connectionList.remove(p.getPort());
 	}
-
+/*
 	public synchronized void waitForEmptyQueue(){
 		try {
 			
@@ -274,10 +293,10 @@ public class PeerManager {
 			System.out.println("Eccezione in" +main.me.getPort());
 			e.printStackTrace();
 		}
-
-
 	
 	}
+
+*/
 
 	public void onDummyBroadCastMessageReceived(
 			DummyBroadCastMessage dummyBroadCastMessage) {
@@ -313,14 +332,14 @@ public class PeerManager {
 	}
 
 	public void onDeathMessageReceived(DeathMessage deathMessage) {
-		System.out.println(deathMessage.sender.getPort() + " è morto");
 		if (game.currentPosition.equals(deathMessage.lastPosition)) {
 			game.scorePoint();
 
 		}
-		sendAck(deathMessage.sender);
 
 		removeFromPeerList(deathMessage.sender);
+		sendAck(deathMessage.sender);
+
 	}
 
 	public void sendAck(Player p) {
@@ -336,14 +355,14 @@ public class PeerManager {
 	}
 
 	public void win() {
+		tm.blockToken();
 		VictoryMessage vm = new VictoryMessage();
 		vm.sender = main.me;
 		sendAllWithAck(vm);
-
 	}
 
 	public void onVictoryMessageReceived() {
 		// TODO Auto-generated method stub
-
+		gameLost();
 	}
 }
