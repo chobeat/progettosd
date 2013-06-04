@@ -8,6 +8,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Random;
 import java.util.UUID;
 
 import javax.ws.rs.core.MediaType;
@@ -179,21 +180,28 @@ public class Main {
 	public static void runParallelTest() throws InterruptedException,
 			IOException, JAXBException {
 
-		Thread first = new customTest(generateRandomPlayer() + "0\n partita\nq\n");
+		Thread first = new customTest(generateRandomPlayer() + "0\n partita\n");
 		first.start();
 		first.join(1000);
-
-		String clients[] = {  generateRandomPlayer()+"1\nq\n",
-	/*	generateRandomPlayer() + "1\nq\n",generateRandomPlayer()+"1\n2\n2\n3\n",
-		generateRandomPlayer() + "1\n1\n1\n"*/};
+		String clients[] = {
+		generateRandomPlayer() +"1\n"+generateRandomMoves() ,generateRandomPlayer()+"1\n2\n2\n3\n",
+		generateRandomPlayer() +"1\n"+generateRandomMoves(),generateRandomPlayer() +"1\n"+generateRandomMoves(),generateRandomPlayer() +"1\n"+generateRandomMoves() };
 		for (String i : clients) {
 			Thread t = new customTest(i);
 			t.start();
 			Thread.sleep(100);
 		}
-
 	}
 
+	public static String generateRandomMoves(){
+		String res="";
+		for(int i=00;i<99;i++){
+			res=res+((new Random()).nextInt(4)+1)+"\n";
+			
+		}
+		return res;
+		
+	}
 	public static void cleanServer() {
 
 		ClientConfig config;

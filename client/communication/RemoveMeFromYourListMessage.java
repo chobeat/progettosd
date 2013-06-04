@@ -4,11 +4,10 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import distributed.PeerManager;
 @XmlRootElement
-public class VictoryMessage extends Message {
-
+public class RemoveMeFromYourListMessage extends Message{
+	
 	@Override
 	public void execute(PeerManager pm){
-		pm.onVictoryMessageReceived(this);
-		
+		pm.onRemoveMeFromYourListMessage(this);
 	}
 }

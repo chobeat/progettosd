@@ -67,13 +67,19 @@ public class TokenManager {
 		System.out.println("Sono " + pm.main.me.getPort()
 				+ " e ricevo token con counter " + t.counter);
 		//System.out.println("Il mio next è "+next.player.getPort()+" il mio prev è "+prev.player.getPort());
-		
-		sendTokenWaitingMessages();
-		TokenMessage newToken = new TokenMessage();
+
+		try {
+			Thread.sleep(100);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}TokenMessage newToken = new TokenMessage();
 		newToken.counter = t.counter + 1;
 		try {
 			waitOnToken();
 
+			sendTokenWaitingMessages();
+			
 			pm.send(newToken, next.player);
 
 		} catch (JAXBException e1) {
@@ -150,7 +156,6 @@ public class TokenManager {
 	public void joinRing() throws IOException, JAXBException {
 
 		if (pm.connectionList.size() < 2) {
-			System.out.println("Ballo da solo");
 			inRing = true;
 			next = pm.connectionList.get(pm.main.me.getPort());
 			prev=next;
@@ -161,7 +166,6 @@ public class TokenManager {
 
 		} else {
 
-			System.out.println("Ballo in compagnia");
 			Peer target = (Peer) pm.connectionList.values().toArray()[lastTry++
 					% pm.connectionList.values().size()];
 
@@ -176,7 +180,7 @@ public class TokenManager {
 
 	public synchronized void onJoinRingMessageReceived(JoinRingMessage jrm) {
 		JoinRingAckMessage reply = new JoinRingAckMessage();
-		System.out.println("Sono"+ pm.main.me.getPort()+" e ricevo JoinRingMessage");
+	//	System.out.println("Sono"+ pm.main.me.getPort()+" e ricevo JoinRingMessage");
 		if (!inRing) {
 			reply.found = false;
 			// System.out.println("Non sono ancora nel ring e sono "

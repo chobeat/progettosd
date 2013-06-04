@@ -106,8 +106,14 @@ public class PeerManager {
 		Peer p = connectionList.get(port);
 
 		if (p == null) {
+			try{
 			p = addToPeerList(player);
-		}
+			}catch(IOException e){
+				
+			return;	
+			}
+			
+			}
 		Socket s = p.getSocket();
 
 		if (s == null) {
@@ -233,39 +239,50 @@ public class PeerManager {
 		throw new IOException();
 	}
 
-	public void gameLost() {
-		synchronized(tm.tokenWaiter){
+
+	
+	public void gameLost(Player toBeACKed) {
+		
 		try {
+			synchronized(tm.tokenWaiter){
 			tm.tokenWaiter.wait();
-		} catch (InterruptedException e) {
+			}
+		} catch (InterruptedException e1) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			e1.printStackTrace();
 		}
-		}
+		
 		tm.blockToken();
 		System.out.println("Ho perso");
 		
 		
 		tm.exitRing();
+		
 		DeathMessage dm = new DeathMessage();
 		dm.sender = main.me;
 		dm.lastPosition = game.currentPosition;
 		sendAllWithAck(dm);
-
+		
+		sendAck(toBeACKed);
+		
+		
+		
 		try {
 			main.server.removePlayer(main.me);
 		} catch (JAXBException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
+		
 		tm.releaseToken();
+		
 		try {
 			listener.socket.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		System.out.println("Sono "+main.me.getPort()+" e finisco");
 	}
 
 	public void removeFromPeerList(Player p) {
@@ -332,14 +349,26 @@ public class PeerManager {
 	}
 
 	public void onDeathMessageReceived(DeathMessage deathMessage) {
+		boolean isWon;
 		if (game.currentPosition.equals(deathMessage.lastPosition)) {
-			game.scorePoint();
+			System.out.println("Sono "+main.me.getPort()+" e faccio punto");
+			isWon=game.scorePoint();
+			sendAck(deathMessage.sender);
 
+			if(isWon){
+				win();
+			}
+			return;
 		}
 
-		removeFromPeerList(deathMessage.sender);
 		sendAck(deathMessage.sender);
 
+	}
+	
+
+	public void onRemoveMeFromYourListMessage(	communication.RemoveMeFromYourListMessage removeMeFromYourListMessage) {
+		// TODO Auto-generated method stub
+		
 	}
 
 	public void sendAck(Player p) {
@@ -359,10 +388,12 @@ public class PeerManager {
 		VictoryMessage vm = new VictoryMessage();
 		vm.sender = main.me;
 		sendAllWithAck(vm);
+	
+		
 	}
 
-	public void onVictoryMessageReceived() {
-		// TODO Auto-generated method stub
-		gameLost();
-	}
+	public void onVictoryMessageReceived(VictoryMessage m) {
+		System.out.println("Il vincitore è "+m.sender.getPort());
+		
+		}
 }

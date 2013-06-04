@@ -25,12 +25,13 @@ public	Position currentPosition;
 		this.pm=pm;
 	}
 	
-	public void scorePoint(){
+	public boolean scorePoint(){
 		points++;
 		if(points>=WINNING_SCORE){
-			pm.win();
+			return true;
 		}
 		
+		return false;
 	}
 	
 	public Position move(String direction) throws InvalidInputException{
@@ -39,25 +40,24 @@ public	Position currentPosition;
 		case("2"):currentPosition.addX();break;
 		case("3"):currentPosition.addY();break;
 		case("4"):currentPosition.lessX();break;
-		case("q"):pm.gameLost();
+		case("q"):pm.gameLost(null);
+		case("w"):pm.win();
+		
 		default: throw new InvalidInputException();	
 		}
 		
 		return currentPosition;
 	}
 	public void onMoveMessageReceived(MoveMessage m){
-		System.out.println("Ricevo una move da "+m.sender.getPort());
-		System.out.println("Sono in "+currentPosition+" ,"+m.sender.getPort()+" è in "+m.newPosition);
-		if(m.newPosition.equals(currentPosition))
-			pm.gameLost();
+		System.out.println("Sono"+ pm.main.me.getPort()+" in "+currentPosition+" ,"+m.sender.getPort()+" è in "+m.newPosition);
 		
-		try {
-			pm.send(new AckMessage(), m.sender);
-		} catch (IOException | JAXBException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if(m.newPosition.equals(currentPosition)){
+
+			System.err.println("Sono stato mangiato");
+			pm.gameLost(m.sender);
+
 		}
-		
 	}
+
 	
 }
