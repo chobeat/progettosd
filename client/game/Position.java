@@ -1,19 +1,21 @@
 package game;
 
-public class Position {
+public class Position implements Cloneable{
 
 	int x;
 	int y;
 	public static final int MAX_GRID_SIZE=3;
 	
-	public Position(int x,int y){
+	public Position(int x,int y) {
 		this.x=x;
 		this.y=y;
 	}
 	public Position(){
 		
 	}
-	
+	 public Position clone() throws CloneNotSupportedException {
+         return (Position) super.clone();
+ }
 	
 	public int getX() {
 		return x;

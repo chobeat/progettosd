@@ -93,8 +93,7 @@ public class Main {
 
 			}
 			selection = in.readLine();
-
-			switch (selection) {
+				switch (selection) {
 			case ("q"):
 				System.exit(0);
 				break;
@@ -138,6 +137,7 @@ public class Main {
 		System.out.println("Inizio partita " + activeMatch.name);
 
 		peerManager = new PeerManager(this, me, activeMatch.playerList);
+		
 		peerManager.startMatch();
 		String selection;
 		synchronized(peerManager.tm.tokenWaiter){
@@ -151,16 +151,27 @@ public class Main {
 		}
 		while (true) {
 		selection = in.readLine();
-			
+		
 			if (selection == null)
 				continue;
-
+			try {
+				Thread.sleep(150);
+			} catch (InterruptedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			
 			try {
 				Position p=peerManager.game.move(selection);
 				MoveMessage m=new MoveMessage();
 				m.sender=me;
-				m.newPosition=p;
-				peerManager.sendAllWithAckAtToken(m);
+				try {
+					m.newPosition=p.clone();
+				} catch (CloneNotSupportedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				peerManager.sendAllWithMoveAckAtToken(m);
 			} catch (InvalidInputException e) {
 			System.out.println("Input non valido. Riprova");
 				continue;
@@ -184,8 +195,15 @@ public class Main {
 		first.start();
 		first.join(1000);
 		String clients[] = {
-		generateRandomPlayer() +"1\n"+generateRandomMoves() ,generateRandomPlayer()+"1\n2\n2\n3\n",
-		generateRandomPlayer() +"1\n"+generateRandomMoves(),generateRandomPlayer() +"1\n"+generateRandomMoves(),generateRandomPlayer() +"1\n"+generateRandomMoves() };
+
+				generateRandomPlayer() +"1\n",
+				generateRandomPlayer() +"1\n",
+				generateRandomPlayer() +"1\n",
+		generateRandomPlayer() +"1\n"+generateRandomMoves(),
+		generateRandomPlayer() +"1\n",
+		generateRandomPlayer() +"1\n",
+		generateRandomPlayer() +"1\n"+generateRandomMoves(),
+		generateRandomPlayer() +"1\n"+generateRandomMoves(),  };
 		for (String i : clients) {
 			Thread t = new customTest(i);
 			t.start();

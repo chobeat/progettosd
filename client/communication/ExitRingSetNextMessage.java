@@ -9,6 +9,8 @@ import distributed.PeerManager;
 public class ExitRingSetNextMessage extends Message {
 
 	public Player newNext;
+	public Player target;
+	
 	
 	@Override
 	public void execute(PeerManager pm){

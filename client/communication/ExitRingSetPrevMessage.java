@@ -8,6 +8,7 @@ import distributed.PeerManager;
 @XmlRootElement
 public class ExitRingSetPrevMessage extends Message {
 	public Player newPrev;
+	public Player target;
 	
 	@Override
 	public void execute(PeerManager pm){

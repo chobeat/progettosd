@@ -28,7 +28,7 @@ import communication.TokenMessage;
 
 public class TokenManager {
 
-	private Peer prev;
+	public Peer prev;
 	public Peer next;
 	public PeerManager pm;
 	public boolean someoneEntering = false;
@@ -59,27 +59,28 @@ public class TokenManager {
 	}
 
 	public void onTokenReceived(TokenMessage t) throws IOException {
-		
+
 		synchronized (tokenWaiter) {
 			tokenWaiter.notifyAll();
 
 		}
 		System.out.println("Sono " + pm.main.me.getPort()
 				+ " e ricevo token con counter " + t.counter);
-		//System.out.println("Il mio next è "+next.player.getPort()+" il mio prev è "+prev.player.getPort());
+		// System.out.println("Il mio next è "+next.player.getPort()+" il mio prev è "+prev.player.getPort());
 
 		try {
 			Thread.sleep(100);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}TokenMessage newToken = new TokenMessage();
+		}
+		TokenMessage newToken = new TokenMessage();
 		newToken.counter = t.counter + 1;
 		try {
 			waitOnToken();
 
 			sendTokenWaitingMessages();
-			
+
 			pm.send(newToken, next.player);
 
 		} catch (JAXBException e1) {
@@ -90,13 +91,13 @@ public class TokenManager {
 	}
 
 	public synchronized void waitOnToken() {
-		if(tokenBlocked){
-		try {
-			this.wait();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		if (tokenBlocked) {
+			try {
+				this.wait();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -116,6 +117,7 @@ public class TokenManager {
 		// nel move
 		Envelope e = messageToBeSent.poll();
 		if (e != null)
+
 			pm.sendWithAck(e);
 
 	}
@@ -132,24 +134,18 @@ public class TokenManager {
 	}
 
 	public void exitRing() {
-		System.out.println("Sono " + pm.main.me.getPort()
-				+ " e voglio uscire dal ring");
-		
-		System.out.println("Invio next a "+next.player.getPort()+"e prev a "+prev.player.getPort());
 		ExitRingSetNextMessage n = new ExitRingSetNextMessage();
 		n.newNext = next.player;
-		n.sender=pm.main.me;
+		n.sender = pm.main.me;
 		ExitRingSetPrevMessage p = new ExitRingSetPrevMessage();
 		p.newPrev = prev.player;
-		p.sender=pm.main.me;
-		pm.sendWithAck(new Envelope(n,pm.connectionList.get(prev.player.getPort())));
-		try{
-		pm.sendWithAck(new Envelope(p,pm.connectionList.get(next.player.getPort())));
-		}catch (NullPointerException e){
-			e.printStackTrace();
-			System.out.println("Sono "+pm.main.me.getPort()+" Il mio next è"+next.player);
-		}	
-		
+		p.sender = pm.main.me;
+		pm.sendWithAck(new Envelope(n, pm.connectionList.get(prev.player
+				.getPort())));
+		System.out.println("Ricevo primo ack");
+		pm.sendWithAck(new Envelope(p, pm.connectionList.get(next.player
+				.getPort())));
+		System.out.println("Sono uscito dal ring");
 
 	}
 
@@ -158,7 +154,7 @@ public class TokenManager {
 		if (pm.connectionList.size() < 2) {
 			inRing = true;
 			next = pm.connectionList.get(pm.main.me.getPort());
-			prev=next;
+			prev = next;
 
 			TokenMessage newToken = new TokenMessage();
 			newToken.counter = 0;
@@ -177,10 +173,10 @@ public class TokenManager {
 
 	}
 
-
 	public synchronized void onJoinRingMessageReceived(JoinRingMessage jrm) {
 		JoinRingAckMessage reply = new JoinRingAckMessage();
-	//	System.out.println("Sono"+ pm.main.me.getPort()+" e ricevo JoinRingMessage");
+		// System.out.println("Sono"+
+		// pm.main.me.getPort()+" e ricevo JoinRingMessage");
 		if (!inRing) {
 			reply.found = false;
 			// System.out.println("Non sono ancora nel ring e sono "
@@ -199,13 +195,13 @@ public class TokenManager {
 
 			someoneEntering = true;
 			Peer p;
-				p = pm.connectionList.get(jrm.sender.getPort());
-				reply.sender = pm.main.me;
-				reply.found = true;
-				reply.newPrev = prev.player;
+			p = pm.connectionList.get(jrm.sender.getPort());
+			reply.sender = pm.main.me;
+			reply.found = true;
+			reply.newPrev = prev.player;
 
-				prev=p;
-			
+			prev = p;
+
 		}
 
 		try {
@@ -218,7 +214,6 @@ public class TokenManager {
 
 	}
 
-	
 	public void onJoinRingAckMessageReceived(
 			JoinRingAckMessage joinRingReplyMessage) {
 		// System.out.println("RwaitForAckicevo ack e sono " +
@@ -233,8 +228,8 @@ public class TokenManager {
 			}
 
 		} else {
-			prev=pm.connectionList.get(joinRingReplyMessage.newPrev
-					.getPort());
+			prev = pm.connectionList
+					.get(joinRingReplyMessage.newPrev.getPort());
 			JoinToPrevMessage smn = new JoinToPrevMessage();
 			smn.sender = pm.main.me;
 			inRing = true;
@@ -253,7 +248,7 @@ public class TokenManager {
 
 		Player oldNext = next.player;
 		next = pm.connectionList.get(smn.sender.getPort());
-		
+
 		JoinUnlockMessage jtpa = new JoinUnlockMessage();
 		jtpa.sender = pm.main.me;
 		try {
@@ -265,16 +260,20 @@ public class TokenManager {
 	}
 
 	public void onExitRingSetPrevMessageReceived(
-			
-			ExitRingSetPrevMessage exitRingSetPrevMessage) {
-	//System.out.println("Sono "+pm.main.me.getPort()+"e ricevo SetPrev per "+exitRingSetPrevMessage.newPrev.getPort());
+
+	ExitRingSetPrevMessage exitRingSetPrevMessage) {
+		System.out.println("Sono " + pm.main.me.getPort()
+				+ "e ricevo SetPrev per "
+				+ exitRingSetPrevMessage.newPrev.getPort());
 		setPrev(pm.connectionList.get(exitRingSetPrevMessage.newPrev.getPort()));
 		pm.sendAck(exitRingSetPrevMessage.sender);
 	}
 
 	public void onExitRingSetNextMessageReceived(
 			ExitRingSetNextMessage exitRingSetNextMessage) {
-	//	System.out.println("Sono "+pm.main.me.getPort()+"e ricevo SetNext per "+exitRingSetNextMessage.newNext.getPort());
+		System.out.println("Sono " + pm.main.me.getPort()
+				+ "e ricevo SetNext per "
+				+ exitRingSetNextMessage.newNext.getPort());
 		next = pm.connectionList.get(exitRingSetNextMessage.newNext.getPort());
 		pm.sendAck(exitRingSetNextMessage.sender);
 	}

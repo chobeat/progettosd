@@ -9,7 +9,7 @@ import javax.xml.bind.JAXBException;
 import common.Player;
 
 public class Peer {
-	Player player;
+	public Player player;
 	private Socket socket;
 	PeerManager pm;
 	public Peer(PeerManager pm,Socket s, Player p) throws IOException{

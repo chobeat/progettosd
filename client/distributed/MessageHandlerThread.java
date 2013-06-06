@@ -4,6 +4,7 @@ import java.io.BufferedWriter;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 
@@ -48,9 +49,13 @@ public class MessageHandlerThread extends Thread {
 					writeMessage(pm,writer, CustomMarshaller.getCustomMarshaller()
 							.marshal(m) + "\n");
 				}
-			} catch (InterruptedException | JAXBException | IOException e) {
+			}catch(SocketException e){
+		     
+			}
+			
+			catch (InterruptedException | JAXBException |IOException e) {
 				
-				//System.out.println("Eccezzione in "+pm.main.me.getPort()+""+Thread.currentThread().getId()+". Sono "+pm.main.me.getPort()+" Mando:"+ m.type);
+				//System.out.println("Eccezione in "+pm.main.me.getPort()+""+Thread.currentThread().getId()+". Sono "+pm.main.me.getPort()+" Mando:"+ m.type);
 				
 				e.printStackTrace();
 			}

@@ -1,6 +1,7 @@
 package distributed;
 
 import game.Game;
+import game.Position;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -21,14 +22,18 @@ import common.Player;
 import communication.AckMessage;
 import communication.AddMeToYourListMessage;
 import communication.BroadcastEnvelope;
-import communication.DeathMessage;
+import communication.BroadcastMoveEnvelope;
 import communication.DummyBroadCastMessage;
 import communication.Envelope;
+import communication.ExitRingSetNextMessage;
+import communication.ExitRingSetPrevMessage;
 import communication.Message;
+import communication.MoveAck;
+import communication.RemoveFromYourListMessage;
 import communication.VictoryMessage;
 
 public class PeerManager {
-	ConcurrentHashMap<Integer, Peer> connectionList;
+	public ConcurrentHashMap<Integer, Peer> connectionList;
 	ListenDispatcher listener;
 	final int DISPATCH_THREADS = 2;
 	public Main main;
@@ -36,6 +41,7 @@ public class PeerManager {
 	public TokenManager tm;
 	public BlockingQueue<Message> inboundMessageQueue;
 	public BlockingQueue<AckMessage> AckQueue;
+	public BlockingQueue<MoveAck>MoveAckQueue;
 	public Game game;
 	Integer sendQueueWaiter;
 
@@ -43,6 +49,7 @@ public class PeerManager {
 		sendQueueWaiter = 0;
 		inboundMessageQueue = new LinkedBlockingQueue<Message>();
 		AckQueue = new LinkedBlockingQueue<AckMessage>();
+		MoveAckQueue = new LinkedBlockingQueue<MoveAck>();
 
 		main = m;
 
@@ -69,22 +76,57 @@ public class PeerManager {
 		iw.start();
 		md = new MessageDispatcher();
 		md.init(DISPATCH_THREADS, this);
-		game = new Game(this);
 
 	}
 
 	public void startMatch() {
 		try {
+
+			game = new Game(this);
+			game.currentPosition=startingPosition;
+			
 			tm.joinRing();
 			AddMeToYourListMessage m = new AddMeToYourListMessage();
 			m.sender = main.me;
 
 			sendWithAck(new BroadcastEnvelope(m));
+
 		} catch (IOException | JAXBException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
+	}
+
+	public void handleMessage(String s) throws InterruptedException {
+		Message m;
+	
+		try {
+	
+			m = CustomMarshaller.getCustomMarshaller().unmarshal(s);
+			if (m == null) {
+				return;
+			}
+			if (m instanceof AckMessage) {
+				synchronized (AckQueue) {
+					AckQueue.put((AckMessage) m);
+					AckQueue.notify();
+				}
+			} else if (m instanceof MoveAck) {
+				synchronized (MoveAckQueue) {
+					MoveAckQueue.put((MoveAck) m);
+					MoveAckQueue.notify();
+				}
+			} else {
+				inboundMessageQueue.put(m);
+			}
+	
+		} catch (ClassNotFoundException | DOMException | JAXBException
+				| ParserConfigurationException | SAXException | IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	
 	}
 
 	public int sendAllExceptMe(Message m) {
@@ -95,8 +137,8 @@ public class PeerManager {
 		return connectionList.size() - 1;
 	}
 
-	public int sendAllWithAckAtToken(Message m) {
-		tm.messageToBeSent.add(new BroadcastEnvelope(m));
+	public int sendAllWithMoveAckAtToken(Message m) {
+		tm.messageToBeSent.add(new BroadcastMoveEnvelope(m));
 		return connectionList.size() - 1;
 	}
 
@@ -150,11 +192,93 @@ public class PeerManager {
 			}
 
 	}
+	
+	public void sendAllWithMoveAck(Message m){
+		int receivers = sendAllExceptMe(m);
+		System.out.println("Aspetto "+receivers+"move ack");
+		while (MoveAckQueue.size() < receivers) {
+			synchronized (MoveAckQueue) {
+				try {
+					MoveAckQueue.wait();
+					System.out.println("Mi sveglio");
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+		System.out.println("Esco dall'attesa e valuto");
+		for(MoveAck ack:MoveAckQueue){
+			if(ack.eaten){
+				boolean isWon;
+				System.out.println("Sono "+main.me.getPort()+" e faccio punto");
+				
+				
+				isWon=game.scorePoint();
+				
+				
+				removePlayerFromGame(ack);
+				
+
+				
+				
+				
+				if(isWon){
+					win();
+				}
+
+			}
+			
+		}
+		
+		MoveAckQueue.clear();
+	}
+		
+	public void removePlayerFromGame(MoveAck ack){
+	
+
+		ExitRingSetNextMessage n = new ExitRingSetNextMessage();
+		n.newNext = ack.next;
+		n.sender=main.me;
+		ExitRingSetPrevMessage p = new ExitRingSetPrevMessage();
+		p.newPrev = ack.prev;
+		p.sender=main.me;
+		
+		if(ack.prev.getPort()==main.me.getPort()){
+			tm.onExitRingSetNextMessageReceived(n);
+		}
+		else{
+		sendWithAck(new Envelope(n,connectionList.get(ack.prev.getPort())));
+
+		}
+		if(ack.next.getPort()==main.me.getPort()){
+
+			tm.onExitRingSetPrevMessageReceived(p);
+		}
+		else{
+		sendWithAck(new Envelope(p,connectionList.get(ack.next.getPort())));
+		}
+		
+		removeFromPeerList(ack.sender);
+		if(connectionList.size()>0){
+		RemoveFromYourListMessage rm=new RemoveFromYourListMessage();
+		rm.sender=main.me;
+		rm.target=ack.sender;
+		
+		
+
+		sendAllWithAck(rm);
+		}
+	}
 
 	public void sendWithAck(Envelope e) {
 		if (e instanceof BroadcastEnvelope) {
 			sendAllWithAck(e.getMessage());
-		} else {
+		}
+		else if (e instanceof BroadcastMoveEnvelope){
+			sendAllWithMoveAck(e.getMessage());
+		}
+		else {
 			sendSingleWithAck(e.getMessage(), e.getDestination());
 
 		}
@@ -199,6 +323,18 @@ public class PeerManager {
 		AckQueue.clear();
 	}
 
+	public void sendAck(Player p) {
+		AckMessage am = new AckMessage();
+		am.sender = main.me;
+		try {
+			send(am, p);
+		} catch (IOException | JAXBException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	
+	}
+
 	public void onAddMeToYourListMessageReceived(AddMeToYourListMessage m) {
 
 		try {
@@ -241,30 +377,9 @@ public class PeerManager {
 
 
 	
-	public void gameLost(Player toBeACKed) {
-		
-		try {
-			synchronized(tm.tokenWaiter){
-			tm.tokenWaiter.wait();
-			}
-		} catch (InterruptedException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		
-		tm.blockToken();
-		System.out.println("Ho perso");
-		
-		
-		tm.exitRing();
-		
-		DeathMessage dm = new DeathMessage();
-		dm.sender = main.me;
-		dm.lastPosition = game.currentPosition;
-		sendAllWithAck(dm);
-		
-		sendAck(toBeACKed);
-		
+	public void gameLost() {
+		System.out.println("Sono "+main.me.getPort()+" e ho perso");
+
 		
 		
 		try {
@@ -274,20 +389,20 @@ public class PeerManager {
 			e.printStackTrace();
 		}
 		
-		tm.releaseToken();
-		
 		try {
 			listener.socket.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		System.out.println("Sono "+main.me.getPort()+" e finisco");
+		System.out.println("Sono "+main.me.getPort()+" e muoro");
 	}
 
 	public void removeFromPeerList(Player p) {
+		System.out.println("Rimuovo dalla lista "+p.getPort());
 		Peer peer = connectionList.get(p.getPort());
-		md.waitEmptyQueue();
+		
+		//md.waitEmptyQueue();
 		try {
 			peer.getSocket().close();
 
@@ -322,65 +437,11 @@ public class PeerManager {
 		sendAck(dummyBroadCastMessage.sender);
 	}
 
-	public void handleMessage(String s) throws InterruptedException {
-		Message m;
-
-		try {
-
-			m = CustomMarshaller.getCustomMarshaller().unmarshal(s);
-			if (m == null) {
-				return;
-			}
-			if (m instanceof AckMessage) {
-				synchronized (AckQueue) {
-					AckQueue.put((AckMessage) m);
-					AckQueue.notify();
-				}
-			} else {
-				inboundMessageQueue.put(m);
-			}
-
-		} catch (ClassNotFoundException | DOMException | JAXBException
-				| ParserConfigurationException | SAXException | IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-	}
-
-	public void onDeathMessageReceived(DeathMessage deathMessage) {
-		boolean isWon;
-		if (game.currentPosition.equals(deathMessage.lastPosition)) {
-			System.out.println("Sono "+main.me.getPort()+" e faccio punto");
-			isWon=game.scorePoint();
-			sendAck(deathMessage.sender);
-
-			if(isWon){
-				win();
-			}
-			return;
-		}
-
-		sendAck(deathMessage.sender);
-
-	}
-	
-
-	public void onRemoveMeFromYourListMessage(	communication.RemoveMeFromYourListMessage removeMeFromYourListMessage) {
-		// TODO Auto-generated method stub
+	public void onRemoveFromYourListMessage(	communication.RemoveFromYourListMessage removeFromYourListMessage) {
+		System.out.println("Ricevo richiesta rimozione");
+		removeFromPeerList(removeFromYourListMessage.target);
+		sendAck(removeFromYourListMessage.sender);
 		
-	}
-
-	public void sendAck(Player p) {
-		AckMessage am = new AckMessage();
-		am.sender = main.me;
-		try {
-			send(am, p);
-		} catch (IOException | JAXBException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
 	}
 
 	public void win() {
@@ -388,12 +449,17 @@ public class PeerManager {
 		VictoryMessage vm = new VictoryMessage();
 		vm.sender = main.me;
 		sendAllWithAck(vm);
-	
+		System.out.println("Victory ack da tutti");
+		
+		
+		System.out.println("Mi fermo e vinco come un figo della madonna");
 		
 	}
 
 	public void onVictoryMessageReceived(VictoryMessage m) {
 		System.out.println("Il vincitore è "+m.sender.getPort());
 		
+		gameLost();
+		sendAck(m.sender);
 		}
 }
