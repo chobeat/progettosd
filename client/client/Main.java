@@ -8,6 +8,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.ConnectException;
 import java.util.Random;
 import java.util.UUID;
 
@@ -18,6 +19,7 @@ import javax.xml.bind.JAXBException;
 import org.eclipse.jdt.core.compiler.InvalidInputException;
 
 import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientHandlerException;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
@@ -39,9 +41,12 @@ public class Main {
 	 */
 	public static void main(String[] args) throws Exception {
 		// TODO Auto-generated method stub
+
 		cleanServer();
+
 		runParallelTest();
-		//runPlain();
+		// runPlain();
+
 	}
 
 	public static void runPlain() throws IOException, JAXBException,
@@ -62,6 +67,7 @@ public class Main {
 		String name = in.readLine();
 		System.out.println("Quale porta vuoi usare?");
 		int port = Integer.parseInt(in.readLine());
+
 		me = server.createPlayer(name, port);
 		// Match selection
 		activeMatch = this.matchSelection();
@@ -93,7 +99,7 @@ public class Main {
 
 			}
 			selection = in.readLine();
-				switch (selection) {
+			switch (selection) {
 			case ("q"):
 				System.exit(0);
 				break;
@@ -162,23 +168,19 @@ public class Main {
 			}
 			
 			try {
-				Position p=peerManager.game.move(selection);
+				
 				MoveMessage m=new MoveMessage();
 				m.sender=me;
-				try {
-					m.newPosition=p.clone();
-				} catch (CloneNotSupportedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				peerManager.sendAllWithMoveAckAtToken(m);
-			} catch (InvalidInputException e) {
+					m.direction=peerManager.game.parseCommand(selection);
+				
+				peerManager.sendAllWithMoveAckAtToken(m);}
+			 catch (InvalidInputException e) {
 			System.out.println("Input non valido. Riprova");
 				continue;
 			}
 
 		}
-
+		
 	}
 
 	public static String generateRandomPlayer() {
@@ -194,16 +196,21 @@ public class Main {
 		Thread first = new customTest(generateRandomPlayer() + "0\n partita\n");
 		first.start();
 		first.join(1000);
-		String clients[] = {
+		/*
+		 * String clients[] = {
+		 * 
+		 * generateRandomPlayer() +"1\n", generateRandomPlayer() +"1\n",
+		 * generateRandomPlayer() +"1\n", generateRandomPlayer()
+		 * +"1\n"+generateRandomMoves(), generateRandomPlayer() +"1\n",
+		 * generateRandomPlayer() +"1\n", generateRandomPlayer()
+		 * +"1\n"+generateRandomMoves(), generateRandomPlayer()
+		 * +"1\n"+generateRandomMoves(), };
+		 */
+		String clients[] = new String[15];
+		for (int i = 0; i < 15; i++) {
+			clients[i] = generateRandomPlayer() + "1\n"+generateRandomMoves();
+		}
 
-				generateRandomPlayer() +"1\n",
-				generateRandomPlayer() +"1\n",
-				generateRandomPlayer() +"1\n",
-		generateRandomPlayer() +"1\n"+generateRandomMoves(),
-		generateRandomPlayer() +"1\n",
-		generateRandomPlayer() +"1\n",
-		generateRandomPlayer() +"1\n"+generateRandomMoves(),
-		generateRandomPlayer() +"1\n"+generateRandomMoves(),  };
 		for (String i : clients) {
 			Thread t = new customTest(i);
 			t.start();
@@ -211,15 +218,16 @@ public class Main {
 		}
 	}
 
-	public static String generateRandomMoves(){
-		String res="";
-		for(int i=00;i<99;i++){
-			res=res+((new Random()).nextInt(4)+1)+"\n";
-			
+	public static String generateRandomMoves() {
+		String res = "";
+		for (int i = 00; i < 99; i++) {
+			res = res + ((new Random()).nextInt(4) + 1) + "\n";
+
 		}
 		return res;
-		
+
 	}
+
 	public static void cleanServer() {
 
 		ClientConfig config;
@@ -236,7 +244,11 @@ public class Main {
 			service.path("match").path("endall")
 					.type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
 					.accept(MediaType.APPLICATION_XML).post(form);
-		} catch (Exception e) {
+		} catch (ClientHandlerException e) {
+			System.out.println("Accendi il server...");
+		}
+
+		catch (Exception e) {
 			e.printStackTrace();
 
 		}

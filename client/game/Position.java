@@ -4,7 +4,7 @@ public class Position implements Cloneable{
 
 	int x;
 	int y;
-	public static final int MAX_GRID_SIZE=3;
+	public static final int MAX_GRID_SIZE=100;
 	
 	public Position(int x,int y) {
 		this.x=x;
@@ -14,7 +14,7 @@ public class Position implements Cloneable{
 		
 	}
 	 public Position clone() throws CloneNotSupportedException {
-         return (Position) super.clone();
+         return new Position(x,y);
  }
 	
 	public int getX() {
@@ -31,10 +31,10 @@ public class Position implements Cloneable{
 	}
 	public void addX(){x=(x+1)%MAX_GRID_SIZE;}
 	public void addY(){y=(y+1)%MAX_GRID_SIZE;}
-	public void lessX(){x=(x-1);
+	public void lessX(){x=x-1;
 			x=x<0?MAX_GRID_SIZE-1:x;
 	}
-	public void lessY(){y=(y-1);
+	public void lessY(){y=y-1;
 	y=y<0?MAX_GRID_SIZE-1:y;
 	
 	}
@@ -50,9 +50,6 @@ public class Position implements Cloneable{
 	@Override
 	public String toString(){
 		return "("+x+","+y+")";
-	}
-	public static void main (String args[]){
-		
 	}
 	
 }

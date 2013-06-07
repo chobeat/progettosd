@@ -68,12 +68,7 @@ public class TokenManager {
 				+ " e ricevo token con counter " + t.counter);
 		// System.out.println("Il mio next è "+next.player.getPort()+" il mio prev è "+prev.player.getPort());
 
-		try {
-			Thread.sleep(100);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		
 		TokenMessage newToken = new TokenMessage();
 		newToken.counter = t.counter + 1;
 		try {
@@ -232,6 +227,7 @@ public class TokenManager {
 					.get(joinRingReplyMessage.newPrev.getPort());
 			JoinToPrevMessage smn = new JoinToPrevMessage();
 			smn.sender = pm.main.me;
+			
 			inRing = true;
 			try {
 				pm.send(smn, prev.player);

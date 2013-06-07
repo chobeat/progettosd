@@ -1,20 +1,25 @@
 package distributed;
 
+import game.Position;
+
 import java.io.BufferedWriter;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.Queue;
+import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 
 import javax.xml.bind.JAXBException;
 
+import org.eclipse.jdt.core.compiler.InvalidInputException;
 import org.hamcrest.core.IsInstanceOf;
 
 import communication.BroadcastEnvelope;
 import communication.Envelope;
 import communication.Message;
+import communication.MoveMessage;
 
 public class MessageHandlerThread extends Thread {
 	PeerManager pm;
@@ -35,6 +40,11 @@ public class MessageHandlerThread extends Thread {
 				pm.md.increaseCounter();
 				Envelope e = queue.take();
 				m = e.getMessage();
+				if(m instanceof MoveMessage){
+					MoveMessage mm=(MoveMessage)m;
+					
+						mm.newPosition=pm.game.move(mm.direction).clone();
+				}
 				if (e instanceof BroadcastEnvelope) {
 					for (Peer p : pm.connectionList.values()) {
 						if(p.player.getPort()!=pm.main.me.getPort()){
@@ -58,6 +68,9 @@ public class MessageHandlerThread extends Thread {
 				//System.out.println("Eccezione in "+pm.main.me.getPort()+""+Thread.currentThread().getId()+". Sono "+pm.main.me.getPort()+" Mando:"+ m.type);
 				
 				e.printStackTrace();
+			} catch (CloneNotSupportedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
 			}
 			if(pm.md.queue.size()<=0)
 			pm.md.decreaseCounter();

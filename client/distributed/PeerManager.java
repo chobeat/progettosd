@@ -7,6 +7,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -14,6 +15,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import javax.xml.bind.JAXBException;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.eclipse.jdt.core.compiler.InvalidInputException;
 import org.w3c.dom.DOMException;
 import org.xml.sax.SAXException;
 
@@ -29,6 +31,7 @@ import communication.ExitRingSetNextMessage;
 import communication.ExitRingSetPrevMessage;
 import communication.Message;
 import communication.MoveAck;
+import communication.MoveMessage;
 import communication.RemoveFromYourListMessage;
 import communication.VictoryMessage;
 
@@ -80,21 +83,27 @@ public class PeerManager {
 	}
 
 	public void startMatch() {
-		try {
-
+		
 			game = new Game(this);
-			game.currentPosition=startingPosition;
 			
-			tm.joinRing();
 			AddMeToYourListMessage m = new AddMeToYourListMessage();
 			m.sender = main.me;
+			MoveMessage mm=new MoveMessage();
+			mm.sender=main.me;
+			mm.direction=-3;
+				sendAllWithMoveAckAtToken(mm);
+			
+			
+			try {
+				tm.joinRing();
+			} catch (IOException | JAXBException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		
+		sendWithAck(new BroadcastEnvelope(m));
+			
 
-			sendWithAck(new BroadcastEnvelope(m));
-
-		} catch (IOException | JAXBException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
 	}
 
@@ -193,21 +202,19 @@ public class PeerManager {
 
 	}
 	
-	public void sendAllWithMoveAck(Message m){
+	public void sendAllWithMoveAck(MoveMessage m){
 		int receivers = sendAllExceptMe(m);
-		System.out.println("Aspetto "+receivers+"move ack");
+		
 		while (MoveAckQueue.size() < receivers) {
 			synchronized (MoveAckQueue) {
 				try {
 					MoveAckQueue.wait();
-					System.out.println("Mi sveglio");
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
 		}
-		System.out.println("Esco dall'attesa e valuto");
 		for(MoveAck ack:MoveAckQueue){
 			if(ack.eaten){
 				boolean isWon;
@@ -276,7 +283,7 @@ public class PeerManager {
 			sendAllWithAck(e.getMessage());
 		}
 		else if (e instanceof BroadcastMoveEnvelope){
-			sendAllWithMoveAck(e.getMessage());
+			sendAllWithMoveAck((MoveMessage)e.getMessage());
 		}
 		else {
 			sendSingleWithAck(e.getMessage(), e.getDestination());
@@ -368,7 +375,12 @@ public class PeerManager {
 				System.err.println("Sono " + main.me.getPort()
 						+ " Fallisco la connessione a+" + p.getPort()
 						+ ", riprovo");
-				
+				try {
+					Thread.sleep(100);
+				} catch (InterruptedException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 			}
 
 		}
@@ -395,7 +407,7 @@ public class PeerManager {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		System.out.println("Sono "+main.me.getPort()+" e muoro");
+		System.out.println("Sono "+main.me.getPort()+" e muoio");
 	}
 
 	public void removeFromPeerList(Player p) {
@@ -438,7 +450,6 @@ public class PeerManager {
 	}
 
 	public void onRemoveFromYourListMessage(	communication.RemoveFromYourListMessage removeFromYourListMessage) {
-		System.out.println("Ricevo richiesta rimozione");
 		removeFromPeerList(removeFromYourListMessage.target);
 		sendAck(removeFromYourListMessage.sender);
 		
@@ -451,9 +462,7 @@ public class PeerManager {
 		sendAllWithAck(vm);
 		System.out.println("Victory ack da tutti");
 		
-		
-		System.out.println("Mi fermo e vinco come un figo della madonna");
-		
+		System.out.println("Termino");
 	}
 
 	public void onVictoryMessageReceived(VictoryMessage m) {

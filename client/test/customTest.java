@@ -1,8 +1,11 @@
 package test;
+
 import java.io.ByteArrayInputStream;
+import java.net.ConnectException;
+
+import com.sun.jersey.api.client.ClientHandlerException;
 
 import client.Main;
-
 
 public class customTest extends Thread {
 	String input;
@@ -12,16 +15,16 @@ public class customTest extends Thread {
 
 	}
 
-
 	@Override
 	public void run() {
-		
 
 		try {
 			Main m1 = new Main(new ByteArrayInputStream(input.getBytes()));
-
-			m1.runClient();
-			System.out.println("out");
+			try {
+				m1.runClient();
+			} catch (ClientHandlerException e) {
+				System.out.println("Accendi il server...");
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 
