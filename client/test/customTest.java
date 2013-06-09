@@ -1,8 +1,6 @@
 package test;
 
 import java.io.ByteArrayInputStream;
-import java.net.ConnectException;
-
 import com.sun.jersey.api.client.ClientHandlerException;
 
 import client.Main;

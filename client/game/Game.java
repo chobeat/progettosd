@@ -3,11 +3,8 @@ package game;
 import java.io.IOException;
 import java.util.Random;
 
-import javax.xml.bind.JAXBException;
-
 import org.eclipse.jdt.core.compiler.InvalidInputException;
 
-import communication.AckMessage;
 import communication.Envelope;
 import communication.MoveAck;
 import communication.MoveMessage;
@@ -73,6 +70,7 @@ public class Game {
 			pm.gameLost();
 		case (-2):
 			pm.win();
+		//first random move
 		case (-3):
 			currentPosition=new Position((new Random()).nextInt(Position.MAX_GRID_SIZE),(new Random()).nextInt(Position.MAX_GRID_SIZE));
 
@@ -83,31 +81,31 @@ public class Game {
 
 	public void onMoveMessageReceived(MoveMessage m) {
 	
-	/*	System.out.println("Sono" + pm.main.me.getPort() + " in "
+		System.out.println("Sono" + pm.main.me.getPort() + " in "
 				+ currentPosition + " ," + m.sender.getPort() + " è in "
 				+ m.newPosition);
-	*/	MoveAck ack = new MoveAck();
+		
+		
+		MoveAck ack = new MoveAck();
 		Envelope e = new Envelope(ack);
 		ack.sender=pm.main.me;
 		try {
 			e.setDestination(pm.connectionList.get(m.sender.getPort())
 					.getOutput());
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-
+		
+		//valuto la mia posizione rispetto a quella della Move ricevuta
 		if (m.newPosition.equals(currentPosition)) {
 
 			System.out.println("Sono"+ pm.main.me.getPort()+" e sono stato mangiato");
 
-			// pm.tm.exitRing();
 			ack.eaten = true;
 			ack.prev=pm.tm.prev.player;
 
 			ack.next=pm.tm.next.player;
 
-			System.out.println("Ho mandato ack con prev "+pm.tm.prev.player.getPort() +" e next "+pm.tm.next.player.getPort());
 			pm.send(e);
 
 			pm.gameLost();

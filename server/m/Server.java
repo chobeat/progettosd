@@ -59,7 +59,7 @@ public class Server {
 
 	}
 	
-	public Match removePlayer(int matchID,Player p){
+	public synchronized Match removePlayer(int matchID,Player p){
 		Match m=this.getMatchByID(matchID);
 		m.removePlayer(p);
 		return m;
@@ -81,18 +81,18 @@ public class Server {
 		}
 	}
 	
-	public Match getMatchByID(int ID){
+	public synchronized Match getMatchByID(int ID){
 		return matchList.get(ID);
 		
 	}
 	
-	public boolean endMatch(int ID){
+	public synchronized boolean endMatch(int ID){
 		getMatchByID(ID).end();
 		return matchList.remove(ID)==null;
-		
+		 
 	}
 	
-	public Player createPlayer(String name, String addr, int port) {
+	public synchronized Player createPlayer(String name, String addr, int port) {
 		Player p = new Player(name, addr, port);
 		
 		playerList.add(p);

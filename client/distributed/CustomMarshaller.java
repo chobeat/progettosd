@@ -40,21 +40,27 @@ public class CustomMarshaller {
 	}
 
 	public synchronized Message unmarshal(String string) throws JAXBException,
-	
+
 	ParserConfigurationException, SAXException, IOException,
 			ClassNotFoundException, DOMException {
-		if(string==null||string==""){return null;}
+
+		if (string == null || string == "") {
+			return null;
+		}
+
 		DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
 		DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
 		Document doc = dBuilder.parse(new ByteArrayInputStream(string
 				.getBytes()));
 		doc.getDocumentElement().normalize();
-		doc.getElementById("type");
+		
 		communication.Message received;
+		String className=doc.getElementsByTagName("type").item(0)
+				.getTextContent();
+		
 		received = (communication.Message) JAXB.unmarshal(new StringReader(
-				string), Class.forName(doc.getElementsByTagName("type").item(0)
-				.getTextContent()));
-
+				string), Class.forName(className));
+		
 		Class.forName(received.type).cast(received);
 		return received;
 

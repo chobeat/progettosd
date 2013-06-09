@@ -2,13 +2,10 @@ package client;
 
 import common.*;
 import communication.MoveMessage;
-import game.Position;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.ConnectException;
 import java.util.Random;
 import java.util.UUID;
 
@@ -45,7 +42,7 @@ public class Main {
 		cleanServer();
 
 		runParallelTest();
-		// runPlain();
+		//runPlain();
 
 	}
 
@@ -146,6 +143,8 @@ public class Main {
 		
 		peerManager.startMatch();
 		String selection;
+		
+		//Aspetto il primo token prima di iniziare ad accettare input
 		synchronized(peerManager.tm.tokenWaiter){
 			
 		try {
@@ -160,19 +159,14 @@ public class Main {
 		
 			if (selection == null)
 				continue;
-			try {
-				Thread.sleep(150);
-			} catch (InterruptedException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
+			
 			
 			try {
-				
+				//Costruisco una mossa
 				MoveMessage m=new MoveMessage();
 				m.sender=me;
 					m.direction=peerManager.game.parseCommand(selection);
-				
+				//La manderò con ack all'arrivo del token
 				peerManager.sendAllWithMoveAckAtToken(m);}
 			 catch (InvalidInputException e) {
 			System.out.println("Input non valido. Riprova");
@@ -192,8 +186,8 @@ public class Main {
 
 	public static void runParallelTest() throws InterruptedException,
 			IOException, JAXBException {
-
-		Thread first = new customTest(generateRandomPlayer() + "0\n partita\n");
+		
+		Thread first = new customTest(generateRandomPlayer() + "0\n partita\n"+generateRandomMoves());
 		first.start();
 		first.join(1000);
 		/*
@@ -206,8 +200,9 @@ public class Main {
 		 * +"1\n"+generateRandomMoves(), generateRandomPlayer()
 		 * +"1\n"+generateRandomMoves(), };
 		 */
-		String clients[] = new String[15];
-		for (int i = 0; i < 15; i++) {
+		int clientNum=10;
+		String clients[] = new String[clientNum];
+		for (int i = 0; i < clientNum; i++) {
 			clients[i] = generateRandomPlayer() + "1\n"+generateRandomMoves();
 		}
 
@@ -220,7 +215,7 @@ public class Main {
 
 	public static String generateRandomMoves() {
 		String res = "";
-		for (int i = 00; i < 99; i++) {
+		for (int i = 0; i < 999; i++) {
 			res = res + ((new Random()).nextInt(4) + 1) + "\n";
 
 		}

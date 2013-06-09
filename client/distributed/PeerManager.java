@@ -1,24 +1,15 @@
 package distributed;
 
 import game.Game;
-import game.Position;
-
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import javax.xml.bind.JAXBException;
-import javax.xml.parsers.ParserConfigurationException;
-
-import org.eclipse.jdt.core.compiler.InvalidInputException;
-import org.w3c.dom.DOMException;
-import org.xml.sax.SAXException;
-
 import client.Main;
 import common.Player;
 import communication.AckMessage;
@@ -36,20 +27,25 @@ import communication.RemoveFromYourListMessage;
 import communication.VictoryMessage;
 
 public class PeerManager {
+	//Lista di peer presenti nella rete
 	public ConcurrentHashMap<Integer, Peer> connectionList;
 	ListenDispatcher listener;
+	//numero di thread che manderanno messaggi
 	final int DISPATCH_THREADS = 2;
 	public Main main;
 	public MessageDispatcher md;
 	public TokenManager tm;
+	//messaggi in arrivo
 	public BlockingQueue<Message> inboundMessageQueue;
-	public BlockingQueue<AckMessage> AckQueue;
-	public BlockingQueue<MoveAck>MoveAckQueue;
-	public Game game;
-	Integer sendQueueWaiter;
 
+	//ack in arrivo
+	public BlockingQueue<AckMessage> AckQueue;
+
+	//MoveAck in arrivo
+	public BlockingQueue<MoveAck> MoveAckQueue;
+	public Game game;
+	
 	public PeerManager(Main m, Player me, List<Player> pl) {
-		sendQueueWaiter = 0;
 		inboundMessageQueue = new LinkedBlockingQueue<Message>();
 		AckQueue = new LinkedBlockingQueue<AckMessage>();
 		MoveAckQueue = new LinkedBlockingQueue<MoveAck>();
@@ -63,6 +59,7 @@ public class PeerManager {
 		listener = new ListenDispatcher(this);
 		listener.start();
 
+		//Aggiungo tutti i giocatori arrivati dal server alla mia lista di Peer
 		for (Player p : localList) {
 			try {
 				addToPeerList(p);
@@ -83,59 +80,27 @@ public class PeerManager {
 	}
 
 	public void startMatch() {
+
+		game = new Game(this);
 		
-			game = new Game(this);
-			
-			AddMeToYourListMessage m = new AddMeToYourListMessage();
-			m.sender = main.me;
-			MoveMessage mm=new MoveMessage();
-			mm.sender=main.me;
-			mm.direction=-3;
-				sendAllWithMoveAckAtToken(mm);
-			
-			
-			try {
-				tm.joinRing();
-			} catch (IOException | JAXBException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-		
-		sendWithAck(new BroadcastEnvelope(m));
-			
+		//Prima move di posizionamento random
+		MoveMessage mm = new MoveMessage();
+		mm.sender = main.me;
+		//Direzione di spostamento random
+		mm.direction = -3;
+		sendAllWithMoveAckAtToken(mm);
 
-
-	}
-
-	public void handleMessage(String s) throws InterruptedException {
-		Message m;
-	
 		try {
-	
-			m = CustomMarshaller.getCustomMarshaller().unmarshal(s);
-			if (m == null) {
-				return;
-			}
-			if (m instanceof AckMessage) {
-				synchronized (AckQueue) {
-					AckQueue.put((AckMessage) m);
-					AckQueue.notify();
-				}
-			} else if (m instanceof MoveAck) {
-				synchronized (MoveAckQueue) {
-					MoveAckQueue.put((MoveAck) m);
-					MoveAckQueue.notify();
-				}
-			} else {
-				inboundMessageQueue.put(m);
-			}
-	
-		} catch (ClassNotFoundException | DOMException | JAXBException
-				| ParserConfigurationException | SAXException | IOException e) {
+			tm.joinRing();
+		} catch (IOException | JAXBException e1) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			e1.printStackTrace();
 		}
-	
+		// chiedo a tutti di aggiungermi  alla loro lista
+		AddMeToYourListMessage m = new AddMeToYourListMessage();
+		m.sender = main.me;
+		sendWithAck(new BroadcastEnvelope(m));
+
 	}
 
 	public int sendAllExceptMe(Message m) {
@@ -157,14 +122,14 @@ public class PeerManager {
 		Peer p = connectionList.get(port);
 
 		if (p == null) {
-			try{
-			p = addToPeerList(player);
-			}catch(IOException e){
-				
-			return;	
+			try {
+				p = addToPeerList(player);
+			} catch (IOException e) {
+
+				return;
 			}
-			
-			}
+
+		}
 		Socket s = p.getSocket();
 
 		if (s == null) {
@@ -201,10 +166,10 @@ public class PeerManager {
 			}
 
 	}
-	
-	public void sendAllWithMoveAck(MoveMessage m){
+
+	public void sendAllWithMoveAck(MoveMessage m) {
 		int receivers = sendAllExceptMe(m);
-		
+
 		while (MoveAckQueue.size() < receivers) {
 			synchronized (MoveAckQueue) {
 				try {
@@ -215,77 +180,67 @@ public class PeerManager {
 				}
 			}
 		}
-		for(MoveAck ack:MoveAckQueue){
-			if(ack.eaten){
+		for (MoveAck ack : MoveAckQueue) {
+			if (ack.eaten) {
 				boolean isWon;
-				System.out.println("Sono "+main.me.getPort()+" e faccio punto");
-				
-				
-				isWon=game.scorePoint();
-				
-				
+				System.out.println("Sono " + main.me.getPort()
+						+ " e faccio punto");
+				//segno un punto 
+				isWon = game.scorePoint();
+				//mi incarico della rimozione del giocatore morto
 				removePlayerFromGame(ack);
 				
-
-				
-				
-				
-				if(isWon){
+				if (isWon) {
 					win();
 				}
 
 			}
-			
+
 		}
-		
+
 		MoveAckQueue.clear();
 	}
-		
-	public void removePlayerFromGame(MoveAck ack){
-	
-
+	//rimuove un altro giocatore dal gioco
+	public void removePlayerFromGame(MoveAck ack) {
+		//Messaggi per adattare il ring
 		ExitRingSetNextMessage n = new ExitRingSetNextMessage();
 		n.newNext = ack.next;
-		n.sender=main.me;
+		n.sender = main.me;
 		ExitRingSetPrevMessage p = new ExitRingSetPrevMessage();
 		p.newPrev = ack.prev;
-		p.sender=main.me;
-		
-		if(ack.prev.getPort()==main.me.getPort()){
+		p.sender = main.me;
+
+		//Se io sono adiacente al nodo che deve uscire, gestisco localmente, altrimenti comunico le modifiche
+		if (ack.prev.getPort() == main.me.getPort()) {
 			tm.onExitRingSetNextMessageReceived(n);
-		}
-		else{
-		sendWithAck(new Envelope(n,connectionList.get(ack.prev.getPort())));
+		} else {
+			sendWithAck(new Envelope(n, connectionList.get(ack.prev.getPort())));
 
 		}
-		if(ack.next.getPort()==main.me.getPort()){
+		if (ack.next.getPort() == main.me.getPort()) {
 
 			tm.onExitRingSetPrevMessageReceived(p);
+		} else {
+			sendWithAck(new Envelope(p, connectionList.get(ack.next.getPort())));
 		}
-		else{
-		sendWithAck(new Envelope(p,connectionList.get(ack.next.getPort())));
-		}
-		
+		//rimuovo il player dalla mia lista
 		removeFromPeerList(ack.sender);
-		if(connectionList.size()>0){
-		RemoveFromYourListMessage rm=new RemoveFromYourListMessage();
-		rm.sender=main.me;
-		rm.target=ack.sender;
-		
-		
+		//chiedo a tutti di rimuovere il player dalla lista
+		if (connectionList.size() > 0) {
+			RemoveFromYourListMessage rm = new RemoveFromYourListMessage();
+			rm.sender = main.me;
+			rm.target = ack.sender;
 
-		sendAllWithAck(rm);
+			sendAllWithAck(rm);
 		}
 	}
 
 	public void sendWithAck(Envelope e) {
 		if (e instanceof BroadcastEnvelope) {
 			sendAllWithAck(e.getMessage());
-		}
-		else if (e instanceof BroadcastMoveEnvelope){
-			sendAllWithMoveAck((MoveMessage)e.getMessage());
-		}
-		else {
+		} else if (e instanceof BroadcastMoveEnvelope) {
+			sendAllWithMoveAck((MoveMessage) e.getMessage());
+		} else {
 			sendSingleWithAck(e.getMessage(), e.getDestination());
 
 		}
@@ -297,10 +252,10 @@ public class PeerManager {
 
 			send(m, out);
 			synchronized (AckQueue) {
-			if(AckQueue.isEmpty()){
-				
-				AckQueue.wait();
-			}
+				if (AckQueue.isEmpty()) {
+
+					AckQueue.wait();
+				}
 			}
 
 			AckQueue.poll();
@@ -339,20 +294,9 @@ public class PeerManager {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	
-	}
-
-	public void onAddMeToYourListMessageReceived(AddMeToYourListMessage m) {
-
-		try {
-			addToPeerList(m.sender);
-			sendAck(m.sender);
-		} catch (JAXBException | IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
 	}
+
 
 	public Peer addToPeerList(Player p) throws JAXBException, IOException {
 		Peer n;
@@ -387,88 +331,131 @@ public class PeerManager {
 		throw new IOException();
 	}
 
-
-	
-	public void gameLost() {
-		System.out.println("Sono "+main.me.getPort()+" e ho perso");
-
-		
-		
-		try {
-			main.server.removePlayer(main.me);
-		} catch (JAXBException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		try {
-			listener.socket.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		System.out.println("Sono "+main.me.getPort()+" e muoio");
-	}
-
 	public void removeFromPeerList(Player p) {
-		System.out.println("Rimuovo dalla lista "+p.getPort());
+		System.out.println("Rimuovo dalla lista " + p.getPort());
 		Peer peer = connectionList.get(p.getPort());
-		
-		//md.waitEmptyQueue();
+	
+		// md.waitEmptyQueue();
 		try {
 			peer.getSocket().close();
-
+	
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		connectionList.remove(p.getPort());
 	}
-/*
-	public synchronized void waitForEmptyQueue(){
+
+	public void onAddMeToYourListMessageReceived(AddMeToYourListMessage m) {
+
 		try {
-			
-		synchronized(sendQueueWaiter){
-			System.out.println("TODO fare il wait for queue");
-		sendQueueWaiter.wait(500);
-		}
-		
-	}catch (InterruptedException |IllegalMonitorStateException e) {
-			System.out.println("Eccezione in" +main.me.getPort());
+			addToPeerList(m.sender);
+			sendAck(m.sender);
+		} catch (JAXBException | IOException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	
+
 	}
 
-*/
-
+	
+	/*
+	 * public synchronized void waitForEmptyQueue(){ try {
+	 * 
+	 * synchronized(sendQueueWaiter){
+	 * System.out.println("TODO fare il wait for queue");
+	 * sendQueueWaiter.wait(500); }
+	 * 
+	 * }catch (InterruptedException |IllegalMonitorStateException e) {
+	 * System.out.println("Eccezione in" +main.me.getPort());
+	 * e.printStackTrace(); }
+	 * 
+	 * }
+	 */
+	
 	public void onDummyBroadCastMessageReceived(
 			DummyBroadCastMessage dummyBroadCastMessage) {
-
+	
 		System.out.println("Ricevo Dummys");
 		sendAck(dummyBroadCastMessage.sender);
 	}
 
-	public void onRemoveFromYourListMessage(	communication.RemoveFromYourListMessage removeFromYourListMessage) {
+	/*
+	 * public synchronized void waitForEmptyQueue(){ try {
+	 * 
+	 * synchronized(sendQueueWaiter){
+	 * System.out.println("TODO fare il wait for queue");
+	 * sendQueueWaiter.wait(500); }
+	 * 
+	 * }catch (InterruptedException |IllegalMonitorStateException e) {
+	 * System.out.println("Eccezione in" +main.me.getPort());
+	 * e.printStackTrace(); }
+	 * 
+	 * }
+	 */
+	
+	public void onRemoveFromYourListMessage(
+			communication.RemoveFromYourListMessage removeFromYourListMessage) {
 		removeFromPeerList(removeFromYourListMessage.target);
 		sendAck(removeFromYourListMessage.sender);
-		
-	}
-
-	public void win() {
-		tm.blockToken();
-		VictoryMessage vm = new VictoryMessage();
-		vm.sender = main.me;
-		sendAllWithAck(vm);
-		System.out.println("Victory ack da tutti");
-		
-		System.out.println("Termino");
+	
 	}
 
 	public void onVictoryMessageReceived(VictoryMessage m) {
-		System.out.println("Il vincitore è "+m.sender.getPort());
-		
+		System.out.println("Il vincitore è " + m.sender.getPort());
+		//Se un altro vince, io perdo ed esco dalla rete
 		gameLost();
 		sendAck(m.sender);
+	}
+
+	public void gameLost() {
+		System.out.println("Sono " + main.me.getPort() + " e ho perso");
+		//Dico al server che esco
+		try {
+			main.server.removePlayer(main.me);
+		} catch (JAXBException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+		//Non accetto più connessioni
+		try {
+			listener.socket.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println("Sono " + main.me.getPort() + " e muoio");
+		//Termino
+		//System.exit(0);
+	
+	}
+
+	
+
+	/*
+	 * public synchronized void waitForEmptyQueue(){ try {
+	 * 
+	 * synchronized(sendQueueWaiter){
+	 * System.out.println("TODO fare il wait for queue");
+	 * sendQueueWaiter.wait(500); }
+	 * 
+	 * }catch (InterruptedException |IllegalMonitorStateException e) {
+	 * System.out.println("Eccezione in" +main.me.getPort());
+	 * e.printStackTrace(); }
+	 * 
+	 * }
+	 */
+
+	public void win() {
+		System.out.println("Ho vinto");
+		//Fermo il token
+		tm.blockToken();
+		//Dico a tutti che ho vinto
+		VictoryMessage vm = new VictoryMessage();
+		vm.sender = main.me;
+		sendAllWithAck(vm);
+
+		System.out.println("Termino");
+		
+	}
 }

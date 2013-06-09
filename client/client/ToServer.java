@@ -3,7 +3,6 @@ package client;
 import java.io.StringWriter;
 import java.net.URI;
 import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.ws.rs.core.MediaType;

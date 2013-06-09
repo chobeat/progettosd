@@ -4,7 +4,7 @@ public class Position implements Cloneable{
 
 	int x;
 	int y;
-	public static final int MAX_GRID_SIZE=100;
+	public static final int MAX_GRID_SIZE=3;
 	
 	public Position(int x,int y) {
 		this.x=x;
