@@ -17,6 +17,14 @@ public class Game {
 	int points;
 	int WINNING_SCORE = 3;
 
+	public String printPoints(){
+		if(points==1)
+			return "un punto";
+		else
+			return this.points+" punti";
+		
+	}
+	
 	public Game(PeerManager pm) {
 		points = 0;
 		currentPosition = new Position(-1,-1);
@@ -76,6 +84,8 @@ public class Game {
 
 		
 		}
+		
+		System.out.println("Sei in "+currentPosition);
 		return currentPosition;
 	}
 
@@ -99,15 +109,15 @@ public class Game {
 		//valuto la mia posizione rispetto a quella della Move ricevuta
 		if (m.newPosition.equals(currentPosition)) {
 
-			System.out.println("Sono"+ pm.main.me.getPort()+" e sono stato mangiato");
-
+			System.out.println("Sei stato mangiato dal giocatore "+m.sender.getName()+" :(");
+			
 			ack.eaten = true;
 			ack.prev=pm.tm.prev.player;
 
 			ack.next=pm.tm.next.player;
 
 			pm.send(e);
-
+			System.out.println("Hai perso, prova di nuovo");
 			pm.gameLost();
 
 		} else {

@@ -55,12 +55,13 @@ public class CustomMarshaller {
 		doc.getDocumentElement().normalize();
 		
 		communication.Message received;
+		//Nome della classe dell'oggetto ricevuto
 		String className=doc.getElementsByTagName("type").item(0)
 				.getTextContent();
-		
+		//Unmarshalo l'oggetto recuperando la class con la reflection
 		received = (communication.Message) JAXB.unmarshal(new StringReader(
 				string), Class.forName(className));
-		
+		//Forzo il cast
 		Class.forName(received.type).cast(received);
 		return received;
 

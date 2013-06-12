@@ -9,135 +9,125 @@ import org.codehaus.jettison.json.JSONException;
 import common.Match;
 import common.Player;
 
-// Plain old Java Object it does not extend as class or implements 
-// an interface
-
-// The class registers its methods for the HTTP GET request using the @GET annotation. 
-// Using the @Produces annotation, it defines that it can deliver several MIME types,
-// text, XML and HTML. 
-
-// The browser requests per default the HTML MIME type.
-
-//Sets the path to base URL + /hello
 @Path("/match")
 public class MatchHandler {
-  // This method is called if TEXT_PLAIN is request
+
 	Server s;
 
+	public MatchHandler() {
+		s = Server.getServer();
+	}
+
+	@PUT
+	@Path("/join")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response joinMatch(MultivaluedMap<String, String> formParams)
+			throws JSONException {
+		Player player = JAXB.unmarshal(new StringReader(formParams
+				.get("player").get(0)), Player.class);
+		int ID = Integer.parseInt(formParams.get("match").get(0));
+		//Richiedo l'entrata nel match identificato da ID
+		Match m = s.joinMatch(player, ID);
+		//se non ho successo, ritorno 410
+		if (m == null) {
+			return Response.status(Status.GONE).build();
+		}
+		//altrimenti ritorno il match
+		return Response.ok(m).build();
+	}
+
 	
-	
- public	 MatchHandler(){
-	 s=Server.getServer();
- }
-  @PUT
-  @Path("/join")
+	@GET
+	@Path("/view/{id}")
+	@Produces(MediaType.TEXT_HTML)
+	public Response view(@PathParam(value = "id") int id) throws JSONException {
+		
+		Match arr[] = s.getMatchArray();
+		return Response.ok(arr[id].toString()).build();
+	}
 
-  @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	// Uso post invece di delete per incompatibilità dell'implementazione di
+	// HttpURLConnection
+	@POST
+	@Path("/removeplayer")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response removePlayer(MultivaluedMap<String, String> formParams)
+			throws JSONException {
 
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response joinMatch(MultivaluedMap<String, String> formParams) throws JSONException {
-	  Player player=JAXB.unmarshal(new StringReader(formParams.get("player").get(0)), Player.class);
-	  int ID= Integer.parseInt(formParams.get("match").get(0));
-	  Match m=s.joinMatch(player, ID);
-  
-	  if(m==null){
-		 return Response.status(Status.GONE).build();
-	  }
-	  
-	  return Response.ok(m).build();
-  }
+		Player player = JAXB.unmarshal(new StringReader(formParams
+				.get("player").get(0)), Player.class);
+		int id = Integer.parseInt(formParams.get("match").get(0));
+		System.out.println("Rimuovo " + id);
+		s.removePlayer(id, player);
+		return Response.ok().build();
+	}
 
-  @GET
-  @Path("/view/{id}")
+	@POST
+	@Path("/end")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Produces(MediaType.APPLICATION_XML)
+	public Response endMatch(MultivaluedMap<String, String> formParams)
+			throws JSONException {
+		int id = (Integer.parseInt(formParams.get("id").get(0)));
+		//Provo a terminare il match  identificato da ID
+		if (s.endMatch(id))
+			return Response.ok().build();
+		else
+			return Response.notModified().build();
+	}
 
-  
-  @Produces(MediaType.TEXT_HTML)
-  public Response view(@PathParam(value = "id") int id) throws JSONException {
-	    
-	  Match arr[]=s.getMatchArray();
-	  return Response.ok(arr[id].toString()).build();
-  }
-  
-  
+	@POST
+	@Path("/endall")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Produces(MediaType.APPLICATION_XML)
+	public Response endAllMatch(MultivaluedMap<String, String> formParams)
+			throws JSONException {
+		//termino tutti i match e pulisco il server
+		s.endAllMatch();
+		return Response.ok().build();
+	}
 
-	//Uso post invece di delete per incompatibilità dell'implementazione di HttpURLConnection
-  @POST
-  @Path("/removeplayer")
+	@POST
+	@Path("/create")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response createMatch(MultivaluedMap<String, String> formParams)
+			throws JSONException {
 
-  @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+		Player starter = JAXB
+				.unmarshal(new StringReader(formParams.get("player").get(0)),
+						Player.class);
+		//creo un match con un nome ed uno starter. Lo ritorno al chiamante
+		Match m = s.createMatch(formParams.get("name").get(0), starter);
+		return Response.ok(m).build();
 
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response removePlayer(MultivaluedMap<String, String> formParams) throws JSONException {
-	 
-	  	Player player=JAXB.unmarshal(new StringReader(formParams.get("player").get(0)), Player.class);
-	  int id= Integer.parseInt(formParams.get("match").get(0));
-	  System.out.println("Rimuovo "+id);
-	  s.removePlayer(id, player);
-	  return Response.ok().build();
-  }
-  
-  @POST
-  @Path("/end")
+	}
 
-  @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-  @Produces(MediaType.APPLICATION_XML)
-  public Response endMatch(MultivaluedMap<String, String> formParams) throws JSONException {
-	int id=(Integer.parseInt(formParams.get("id").get(0)));
-	System.out.println(id);
-	if(s.endMatch(id))	  	
-	  return Response.ok().build();
-	 else
-		return Response.notModified().build();
-  }
-  @POST
-  @Path("/endall")
+	@GET
+	@Path("/list")
+	@Produces(MediaType.APPLICATION_XML)
+	public Match[] matchList() throws JSONException {
 
-  @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-  @Produces(MediaType.APPLICATION_XML)
-  public Response endAllMatch(MultivaluedMap<String, String> formParams) throws JSONException {
-	s.endAllMatch();	  	
-	return Response.ok().build();
-  }  
+		Match[] list = s.getMatchArray();
+		return list;
+	}
 
-  @POST
-  @Path("/create")
+	@POST
+	@Path("/createplayer")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response createPlayer(MultivaluedMap<String, String> formParams)
+			throws JSONException {
 
-  @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+		//Creo un giocatore e lo ritorno
+		Player p = s.createPlayer(formParams.get("name").get(0), formParams
+				.get("addr").get(0), Integer.parseInt(formParams.get("port")
+				.get(0)));
 
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response createMatch(MultivaluedMap<String, String> formParams) throws JSONException {
-	  
-	  Player starter=JAXB.unmarshal(new StringReader(formParams.get("player").get(0)), Player.class);
-	  Match m=s.createMatch(formParams.get("name").get(0),starter);
-	  return Response.ok(m).build();
-  
-  }
-  
-  @GET
-  @Path("/list")
-  @Produces(MediaType.APPLICATION_XML)
-  
-  public Match[] matchList()throws JSONException{
-	  
-	 Match[]  list= s.getMatchArray();
-	  return list;
-  }
-  
-  @POST
-  @Path("/createplayer")
-  @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+		return Response.ok(p).build();
 
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response createPlayer(MultivaluedMap<String, String> formParams) throws JSONException {
-	   
-	  
-	  //Player p= JAXB.unmarshal(new StringReader(data), Player.class);
-		Player p=s.createPlayer(formParams.get("name").get(0),formParams.get("addr").get(0),Integer.parseInt(formParams.get("port").get(0)));
-	  
-	  return Response.ok(p).build();
-  
-  }
-  
-  
+	}
 
-} 
+}

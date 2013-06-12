@@ -80,11 +80,11 @@ public class Main {
 
 		String selection;
 		Match m = null;
-
 		boolean badID = true;
+			
 		while (badID) {
 			try {
-
+		
 				System.out
 						.println("Le partite in corso sono:\n"
 								+ server.getMatchList()
@@ -106,7 +106,12 @@ public class Main {
 				break;
 			default: {
 				try {
-					m = server.joinMatch(Integer.parseInt(selection));
+					
+				int localID=	selectMatch(selection);
+					
+
+					m = server.joinMatch(localID);
+					
 					badID = false;
 				} catch (ArrayIndexOutOfBoundsException | NullPointerException
 						| NumberFormatException e) {
@@ -129,6 +134,46 @@ public class Main {
 
 	}
 
+	int selectMatch(String selection) throws IOException{
+		String s=selection;
+		boolean found=false;
+
+		int localID=-1;
+		while(!found){
+		if(s==null){
+				s=in.readLine();	
+		}
+		localID=Integer.parseInt(selection);
+		String playerOutput="";
+		
+		System.out.println("Partita selezionata: "+server.matchCache[localID-1].name);
+		System.out.println("I giocatori presenti sono:");
+		
+		for(Player p:server.matchCache[localID-1].playerList){
+		playerOutput=playerOutput+p.getName()+",";
+		}
+		playerOutput=playerOutput.substring(0,playerOutput.length()-1);
+		System.out.println(playerOutput);
+		String confirm;
+		boolean exit=false;
+		while(!exit){
+			System.out.println("Vuoi confermare? (s/n)");
+			
+				confirm=in.readLine();
+				switch(confirm){
+				case("s"):exit=true;found=true;break;
+				case("n"):exit=true;found=false;break;
+				default: System.out.println("Input non valido");found=false;exit=false;break;
+				
+				}
+			
+			
+			
+		}
+		}
+		return localID;	
+	}
+	
 	String askMatch() throws IOException {
 		System.out.println("Inserisci il nome della partita che vuoi creare");
 		return in.readLine();
@@ -154,8 +199,10 @@ public class Main {
 			e.printStackTrace();
 		}
 		}
+		System.out.println("Dove vuoi spostarti? (1=alto,2=destra,3=sinistra,4=basso");
+		
 		while (true) {
-		selection = in.readLine();
+			selection = in.readLine();
 		
 			if (selection == null)
 				continue;
@@ -172,13 +219,16 @@ public class Main {
 			System.out.println("Input non valido. Riprova");
 				continue;
 			}
-
+			System.out.println("Dove vuoi spostarti? (1=alto,2=destra,3=sinistra,4=basso");
+			
 		}
 		
 	}
 
+	static int lastPlayerID=0;
 	public static String generateRandomPlayer() {
-		return "" + UUID.randomUUID().toString() + "\n" + ++port + "\n";
+		//return "" + UUID.randomUUID().toString() + "\n" + ++port + "\n";
+		return "Giocatore-" + lastPlayerID++ + "\n" + ++port + "\n";
 
 	}
 
@@ -203,7 +253,9 @@ public class Main {
 		int clientNum=10;
 		String clients[] = new String[clientNum];
 		for (int i = 0; i < clientNum; i++) {
-			clients[i] = generateRandomPlayer() + "1\n"+generateRandomMoves();
+			clients[i] = generateRandomPlayer() + "1\ns\n"+"\n"+generateRandomMoves();
+			Thread.sleep(100);
+			
 		}
 
 		for (String i : clients) {

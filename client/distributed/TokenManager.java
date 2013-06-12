@@ -72,12 +72,17 @@ public class TokenManager {
 			waitOnToken();
 			//Mando i messaggi in attesa di sincronizzazione col token
 			sendTokenWaitingMessages();
+			
+			Thread.sleep(1000);
 			//Faccio proseguire il token
 			pm.send(newToken, next.player);
 
 		} catch (JAXBException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 
 	}
@@ -277,18 +282,21 @@ public class TokenManager {
 	public void onExitRingSetPrevMessageReceived(
 
 	ExitRingSetPrevMessage exitRingSetPrevMessage) {
-		System.out.println("Sono " + pm.main.me.getPort()
+	/*	System.out.println("Sono " + pm.main.me.getPort()
 				+ "e ricevo SetPrev per "
 				+ exitRingSetPrevMessage.newPrev.getPort());
+		
+	*/
 		prev=pm.connectionList.get(exitRingSetPrevMessage.newPrev.getPort());
 		pm.sendAck(exitRingSetPrevMessage.sender);
 	}
 
 	public void onExitRingSetNextMessageReceived(
 			ExitRingSetNextMessage exitRingSetNextMessage) {
-		System.out.println("Sono " + pm.main.me.getPort()
+		/*System.out.println("Sono " + pm.main.me.getPort()
 				+ "e ricevo SetNext per "
-				+ exitRingSetNextMessage.newNext.getPort());
+				+ exitRingSetNextMessage.newNext.getPort());	
+		*/
 		next = pm.connectionList.get(exitRingSetNextMessage.newNext.getPort());
 		pm.sendAck(exitRingSetNextMessage.sender);
 	}

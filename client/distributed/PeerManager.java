@@ -183,10 +183,10 @@ public class PeerManager {
 		for (MoveAck ack : MoveAckQueue) {
 			if (ack.eaten) {
 				boolean isWon;
-				System.out.println("Sono " + main.me.getPort()
-						+ " e faccio punto");
 				//segno un punto 
 				isWon = game.scorePoint();
+				System.out.println("Hai mangiato il giocatore "+ack.sender.getName()+". Ora hai "+game.printPoints());
+				
 				//mi incarico della rimozione del giocatore morto
 				removePlayerFromGame(ack);
 				
@@ -424,7 +424,6 @@ public class PeerManager {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		System.out.println("Sono " + main.me.getPort() + " e muoio");
 		//Termino
 		//System.exit(0);
 	
@@ -447,7 +446,7 @@ public class PeerManager {
 	 */
 
 	public void win() {
-		System.out.println("Ho vinto");
+		System.out.println("Hai Vinto, complimenti");
 		//Fermo il token
 		tm.blockToken();
 		//Dico a tutti che ho vinto

@@ -149,12 +149,19 @@ public class ToServer {
 		return p;
 	}
 
-	public String getMatchList() throws EmptyMatchListException {
+	public Match[] getMatches()throws EmptyMatchListException {
 		WebResource service = client.resource(getBaseURI());
 		Match[] l = service.path("match").path("list")
 				.accept(MediaType.APPLICATION_XML).get(Match[].class);
+		return l;
+		
+	}
+	
+	public String getMatchList() throws EmptyMatchListException {
+		Match[] l=getMatches();
 		if (l.length == 0)
 			throw new EmptyMatchListException();
+		
 		String res = "";
 		matchCache = l;
 		int counter = 0;
